@@ -11,12 +11,16 @@ import {
   ActivityIndicator,
   ScrollView,
   StatusBar,
-  SafeAreaView
+  SafeAreaView,
+  Modal
 } from 'react-native';
 import recommendationsData from '../../recommendationsData.json';
 import { useRouter } from 'expo-router';
 import { fetchProducts, fetchCategories, fetchModels  } from "../../services/api";
 import { Ionicons } from '@expo/vector-icons';
+import { searchProducts } from '@/services/searchServices';
+import SearchResultItem from '@/components/Search/SearchResult';
+import SearchComponent from '@/components/Search/SearchComponent';
 
 const { width } = Dimensions.get('window');
 
@@ -115,7 +119,22 @@ export default function HomeScreen() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState('All'); // Set default to 'All'
+  const [selectedCategory, setSelectedCategory] = useState('All'); 
+
+
+    // Состояния для поиска
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [searchFilters, setSearchFilters] = useState({
+    brands: [] as string[],
+    categories: [] as string[],
+    minPrice: undefined as number | undefined,
+    maxPrice: undefined as number | undefined,
+    genders: [] as string[],
+    colors: [] as string[]
+  });
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -410,6 +429,53 @@ export default function HomeScreen() {
     loadProducts();
   }, []);
 
+        // Функция для выполнения поиска
+  const handleSearch = async (query: string) => {
+    if (query.length < 3) {
+      setSearchResults([]);
+      return;
+    }
+    
+    setSearchQuery(query);
+    setSearchLoading(true);
+    
+    try {
+      const results = await searchProducts(query, searchFilters);
+      setSearchResults(results);
+    } catch (error) {
+      console.error('Error searching products:', error);
+      setSearchResults([]);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+    // Функция для открытия модального окна фильтров
+    const handleOpenFilters = () => {
+      setShowFilterModal(true);
+    };
+  
+    // Функция для закрытия модального окна фильтров
+    const handleCloseFilters = () => {
+      setShowFilterModal(false);
+    };
+
+      // Функция для применения фильтров и обновления результатов поиска
+    const applyFilters = (filters: any) => {
+    setSearchFilters(filters);
+    handleSearch(searchQuery); // Повторно выполняем поиск с новыми фильтрами
+    setShowFilterModal(false);
+    };
+
+    // Функция для перехода на страницу товара
+    const handleProductPress = (slug: string) => {
+      router.push(`../promo/${slug}`);
+    };
+
+      // Функция для рендеринга элемента результата поиска
+  const renderSearchResult = (item: Product) => (
+    <SearchResultItem item={item} onPress={handleProductPress} />
+  );
 
 
   // Функция для фильтрации продуктов по выбранной категории
@@ -469,7 +535,7 @@ export default function HomeScreen() {
     return nonKids.length > 0 ? nonKids[0] : 'Универсальные';
   };
 
-  console.log(products);
+  // console.log(products);
   
 
   // Рендер элемента промо-слайдера
@@ -525,31 +591,31 @@ export default function HomeScreen() {
     );
   };
   
-
-  // Рендер секции с товарами определенного бренда
-  const renderBrandSection = (brand: BrandWithProducts) => (
-    <View style={styles.productSection} key={brand.slug}>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>{brand.name}</Text>
-        <TouchableOpacity onPress={() => router.push(`../brands/${brand.slug}`)}>
-          <Text style={styles.seeAllText}>See All</Text>
-        </TouchableOpacity>
-      </View>
-
-      {brand.products.length > 0 ? (
-        <FlatList
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          data={brand.products.slice(0, 5)}
-          keyExtractor={(item) => item.slug}
-          renderItem={renderProductCard}
-          contentContainerStyle={styles.productList}
-        />
-      ) : (
-        <Text style={styles.emptyBrandText}>No products available for this brand</Text>
-      )}
+  // onPress={() => router.push(`../promo/${item.slug}`)}
+// Рендер секции с товарами определенного бренда
+const renderBrandSection = (brand: BrandWithProducts) => (
+  <View style={styles.productSection} key={brand.slug}>
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionTitle}>{brand.name}</Text>
+      <TouchableOpacity onPress={() => router.push(`../brands/${brand.slug}`)}>
+        <Text style={styles.seeAllText}>See All</Text>
+      </TouchableOpacity>
     </View>
-  );
+
+    {brand.products.length > 0 ? (
+      <FlatList
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        data={brand.products.slice(0, 5)}
+        keyExtractor={(item) => item.slug}
+        renderItem={renderProductCard}
+        contentContainerStyle={styles.productList}
+      />
+    ) : (
+      <Text style={styles.emptyBrandText}>No products available for this brand</Text>
+    )}
+  </View>
+);
 
 // Обновленная функция для рендеринга элемента категории
 const renderCategoryItem = ({ item }: { item: Category }) => (
@@ -580,6 +646,52 @@ const renderCategoryItem = ({ item }: { item: Category }) => (
   </TouchableOpacity>
 );
 
+ // Простой компонент модального окна фильтров
+  const FilterModal = () => (
+    <Modal
+      visible={showFilterModal}
+      animationType="slide"
+      transparent={true}
+      onRequestClose={handleCloseFilters}
+    >
+      <View style={styles.modalContainer}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Фильтры</Text>
+            <TouchableOpacity onPress={handleCloseFilters}>
+              <Ionicons name="close" size={24} color="#000000" />
+            </TouchableOpacity>
+          </View>
+          
+          <Text style={styles.modalSectionTitle}>В будущем здесь будут фильтры</Text>
+          
+          <View style={styles.modalFooter}>
+            <TouchableOpacity 
+              style={styles.resetButton}
+              onPress={() => setSearchFilters({
+                brands: [],
+                categories: [],
+                minPrice: undefined,
+                maxPrice: undefined,
+                genders: [],
+                colors: []
+              })}
+            >
+              <Text style={styles.resetButtonText}>Сбросить</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.applyButton}
+              onPress={() => applyFilters(searchFilters)}
+            >
+              <Text style={styles.applyButtonText}>Применить</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
@@ -601,20 +713,17 @@ const renderCategoryItem = ({ item }: { item: Category }) => (
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Поиск */}
-        <View style={styles.searchBar}>
-          <View style={styles.searchInputContainer}>
-            <Ionicons name="search-outline" size={20} color="#A39FAF" style={styles.searchIcon} />
-            <TextInput
-              placeholder="Search your interest"
-              placeholderTextColor="#A39FAF"
-              style={styles.searchInput}
-            />
-          </View>
-          <TouchableOpacity style={styles.filterButton}>
-            <Ionicons name="options-outline" size={20} color="#FFFFFF" />
-          </TouchableOpacity>
-        </View>
+      {/* Компонент поиска */}
+      <View style={styles.searchBarContainer}>
+        <SearchComponent
+          onSearch={handleSearch}
+          onFilter={handleOpenFilters}
+          placeholder="Поиск товаров"
+          loading={searchLoading}
+          searchResults={searchResults}
+          renderResultItem={renderSearchResult}
+        />
+      </View>
 
         {/* Промо-слайдер */}
         <View style={styles.promoSliderContainer}>
@@ -690,29 +799,13 @@ const styles = StyleSheet.create({
     color: '#000000',
     marginHorizontal: 5,
   },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-    marginTop: 10,
+  searchBarContainer: {
+    marginVertical: 16,
+    width: '100%',
+    zIndex: 1000
   },
-  searchInputContainer: {
-    flex: 1,
-    height: 45,
-    backgroundColor: '#F5F5F5',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  searchIcon: {
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    height: '100%',
-    fontSize: 14,
-    color: '#000000',
+  loader: {
+    marginVertical: 20,
   },
   filterButton: {
     width: 45,
@@ -722,6 +815,66 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 16,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#000000',
+  },
+  modalSectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000000',
+    marginVertical: 10,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#EEEEEE',
+  },
+  resetButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#000000',
+  },
+  resetButtonText: {
+    color: '#000000',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  applyButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    backgroundColor: '#000000',
+  },
+  applyButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
   promoSliderContainer: {
     marginBottom: 20,
@@ -875,7 +1028,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginVertical: 10,
   },
-  loader: {
-    marginVertical: 20,
-  }
 });

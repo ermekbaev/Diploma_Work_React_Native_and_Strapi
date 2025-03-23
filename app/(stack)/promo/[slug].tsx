@@ -143,7 +143,7 @@ export default function PromoDetailScreen() {
       loadProduct();
     }
   }, [slug]);
-  console.log(modelsData);
+
   
   
   useEffect(() => {
@@ -187,8 +187,7 @@ export default function PromoDetailScreen() {
       }
     }
   };
-  console.log(productImages);
-  
+
 
   // Handle size selection
   const handleSizeSelect = (size: number) => {
@@ -365,13 +364,13 @@ export default function PromoDetailScreen() {
           <Text style={styles.descriptionText}>{product.Description}</Text>
         </View>
         
-        {/* Brand section if available */}
+        {/* Brand section if available
         {product.brand && (
           <View style={styles.brandContainer}>
             <Text style={styles.sectionTitle}>Brand</Text>
             <Text style={styles.brandText}>{product.brand.Brand_Name}</Text>
           </View>
-        )}
+        )} */}
         
         {/* Add spacing at the bottom */}
         <View style={styles.bottomSpacer} />
@@ -545,14 +544,14 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
   descriptionContainer: {
-    paddingHorizontal: 16,
     marginTop: 10,
-    marginHorizontal: 15,
   },
   descriptionText: {
     fontSize: 14,
     color: "#333333",
     lineHeight: 20,
+    marginHorizontal: 15,
+    paddingHorizontal: 16,
   },
   brandContainer: {
     paddingHorizontal: 16,
@@ -568,12 +567,12 @@ const styles = StyleSheet.create({
   },
   bottomButtonContainer: {
     position: "absolute",
-    bottom: 0,
+    bottom: 25,
     left: 0,
     right: 0,
     backgroundColor: "#FFFFFF",
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 15,
     borderTopWidth: 1,
     borderTopColor: "#F0F0F0",
   },
