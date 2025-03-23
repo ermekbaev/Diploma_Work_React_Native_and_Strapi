@@ -1,0 +1,41 @@
+[
+  {
+    "id": "1",
+    "title": "Air Jordan 1 Low",
+    "gender": "Men’s Shoes",
+    "price": "3,090c",
+    "description":"This fresh take on the AJ1 brings new energy to a classic neutral colourway. Smooth, premium leather and Nike Air cushioning give you the quality and comfort you've come to expect from Jordan.",
+    "image": "https://www.nike.ae/dw/image/v2/BDVB_PRD/on/demandware.static/-/Sites-akeneo-master-catalog/default/dwbeac84d0/nk/77d/7/2/b/0/6/77d72b06_4c1a_4098_aa37_2d2e69365dd7.png?sw=540&sh=540&sm=fit&q=80",
+    "colorOptions": [
+      {
+        "id": "1-1",
+        "color": "Черный",
+        "image": "https://www.nike.ae/dw/image/v2/BDVB_PRD/on/demandware.static/-/Sites-akeneo-master-catalog/default/dwbeac84d0/nk/77d/7/2/b/0/6/77d72b06_4c1a_4098_aa37_2d2e69365dd7.png?sw=540&sh=540&sm=fit&q=80"
+      },
+      {
+        "id": "1-2",
+        "color": "Красный",
+        "image": "https://www.nike.ae/dw/image/v2/BDVB_PRD/on/demandware.static/-/Sites-akeneo-master-catalog/default/dwa469d95c/nk/719/a/9/9/3/8/719a9938_c96a_49c4_81b5_0a290630688e.png?sw=540&sh=540&sm=fit&q=80"
+      }
+    ]
+  },
+  {
+    "id": "2",
+    "title": "Air Jordan 1 Low",
+    "gender": "Men’s Shoes",
+    "price": "3,090c",
+    "image": "https://www.nike.ae/dw/image/v2/BDVB_PRD/on/demandware.static/-/Sites-akeneo-master-catalog/default/dwbeac84d0/nk/77d/7/2/b/0/6/77d72b06_4c1a_4098_aa37_2d2e69365dd7.png?sw=410&sh=410&sm=fit",
+    "colorOptions": [
+      {
+        "id": "2-1",
+        "color": "Black/White",
+        "image": "https://www.nike.ae/dw/image/v2/BDVB_PRD/on/demandware.static/-/Sites-akeneo-master-catalog/default/dwbeac84d0/nk/77d/7/2/b/0/6/77d72b06_4c1a_4098_aa37_2d2e69365dd7.png?sw=100&sh=100&sm=fit"
+      },
+      {
+        "id": "2-2",
+        "color": "Red/Black",
+        "image": "https://www.nike.ae/dw/image/v2/BDVB_PRD/on/demandware.static/-/Sites-akeneo-master-catalog/default/dwf1547195/nk/57f/4/1/8/0/d/57f4180d_e5ac_4541_8c25_1bfe63d1dc4d.jpg?sw=100&sh=100&sm=fit"
+      }
+    ]
+  }
+]
