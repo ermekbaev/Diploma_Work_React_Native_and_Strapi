@@ -16,11 +16,12 @@ import {
 } from 'react-native';
 import recommendationsData from '../../recommendationsData.json';
 import { useRouter } from 'expo-router';
-import { fetchProducts, fetchCategories, fetchModels  } from "../../services/api";
+import { fetchProducts, fetchCategories, fetchModels, IMG_API  } from "../../services/api";
 import { Ionicons } from '@expo/vector-icons';
 import { searchProducts } from '@/services/searchServices';
 import SearchResultItem from '@/components/Search/SearchResult';
 import SearchComponent from '@/components/Search/SearchComponent';
+import DominantColorBackground from '@/components/Background/DominantColorBackground';
 
 const { width } = Dimensions.get('window');
 
@@ -141,7 +142,7 @@ export default function HomeScreen() {
       try {
         setLoading(true);
         let allCategories = [{ id: 'all', name: 'All', slug: 'all', selected: true }];
-
+  
         // First, load categories from API
         try {
           const categoriesData = await fetchCategories();
@@ -166,20 +167,15 @@ export default function HomeScreen() {
           }
         } catch (catError) {
           console.error('Error loading categories:', catError);
-          // Use default categories if API fails
-          setCategories(initialCategories);
-          console.log('Categories set from initialCategories due to error:', initialCategories);
         }
-
+  
         // Load products
         const data = await fetchProducts();
-        // console.log(data, "==============data===============");
-        
-
+  
         if (!data || !Array.isArray(data)) {
           throw new Error('API response has invalid format');
         }
-
+  
         // Function to get full image URL
         const getFullImageUrl = (relativePath: any) => {
           if (!relativePath) return null;
@@ -189,71 +185,63 @@ export default function HomeScreen() {
           }
           
           const path = relativePath.startsWith('/') ? relativePath : `/${relativePath}`;
-          return `http://192.168.0.103:1337${path}`;
+          return `${IMG_API}${path}`;
         };
-
+  
         const categoryMap = new Map<string, Category>();
         
-        // Add existing categories to the map
         allCategories.forEach(cat => {
           categoryMap.set(cat.slug, cat);
         });
-
-        // Transform data from API
+  
         const formattedProducts = await Promise.all(data.map(async (item: ProductApiResponse) => {
           const models = await fetchModels(item.slug);
           
           let imageUrls: string[] = [];
+          let modelColors: string[] = [];
           
-        // Проверяем, есть ли у моделей изображения
-        if (models && models.length > 0) {
-          // Получаем изображения из первой модели
-          
-          const matchingModels = models.filter((model:any) => model.product?.slug === item.slug);
-          if (matchingModels.length > 0) {
-            // Get images from the first matching model
-            const firstModel = matchingModels[0];
-            if (firstModel.images && firstModel.images.length > 0) {
-              imageUrls = firstModel.images.map((image: any) => {
-                // Check if image has URL or formats
-                if (image.url) {
-                  return getFullImageUrl(image.url);
-                } else if (image.formats && image.formats.small && image.formats.small.url) {
-                  return getFullImageUrl(image.formats.small.url);
+          if (models && models.length > 0) {
+            const matchingModels = models.filter((model: any) => model.product?.slug === item.slug);
+            
+            if (matchingModels.length > 0) {
+              matchingModels.forEach((model: any) => {
+                if (model.color && model.color.Name) {
+                  if (!modelColors.includes(model.color.Name)) {
+                    modelColors.push(model.color.Name);
+                  }
                 }
-                return null;
-              }).filter(Boolean);
+                
+                if (model.images && model.images.length > 0) {
+                  const modelImageUrls = model.images.map((image: any) => {
+                    if (image.url) {
+                      return getFullImageUrl(image.url);
+                    } else if (image.formats && image.formats.small && image.formats.small.url) {
+                      return getFullImageUrl(image.formats.small.url);
+                    }
+                    return null;
+                  }).filter(Boolean);
+                  
+                  imageUrls = [...imageUrls, ...modelImageUrls];
+                }
+              });
             }
           }
-        }
+  
+          const finalColors = modelColors.length > 0 
+            ? modelColors 
+            : (item.colors && Array.isArray(item.colors) 
+                ? item.colors.map(c => c?.Name || '').filter(Boolean)
+                : []);
           
-          // if (imageUrls.length === 0 && item.Image?.data?.url) {
-          //   const mainImageUrl = getFullImageUrl(item.Image.data.url);
-          //   if (mainImageUrl) {
-          //     imageUrls.push(mainImageUrl);
-          //   }
-          // }
+          const uniqueImageUrls = Array.from(new Set(imageUrls));
           
-          // if (imageUrls.length === 0) {
-          //   const imageUrl = item.Image && typeof item.Image === 'object' && item.Image.ModelName 
-          //     ? getFullImageUrl(item.Image.ModelName) 
-          //     : typeof item.Image === 'string' 
-          //       ? getFullImageUrl(item.Image) 
-          //       : 'https://placehold.co/150x105/3E4246/FFFFFF?text=No+image';
-            
-          //   imageUrls.push(imageUrl);
-          // }
-
-          // Извлекаем категории из правильного свойства
           const categoryNames: string[] = [];
           const categoryIds: string[] = [];
           const categorySlugs: string[] = [];
-
-          // Проверяем, есть ли у товара свойство category (единственное число)
+  
           if (item.category) {
             const category = item.category;
             if (category.slug) {
-              // Используем либо NameEngl, либо Name, в зависимости от того, что доступно
               const categoryName = category.NameEngl || category.Name;
               
               if (categoryName) {
@@ -261,26 +249,25 @@ export default function HomeScreen() {
                 categoryIds.push(category.id);
                 categorySlugs.push(category.slug);
                 
-                // Добавляем в map, если еще не добавлено
                 if (!categoryMap.has(category.slug)) {
                   categoryMap.set(category.slug, {
                     id: category.id,
                     slug: category.slug,
                     name: categoryName,
-                    selected: false // Новые категории не выбраны по умолчанию
+                    selected: false 
                   });
                 }
               }
             }
           }
-          
+    
           return {
             slug: item.slug || 'no-slug',
             Name: item.Name || 'No name',
             Description: item.Description || '',
             Price: item.Price || 0,
-            imageUrl: imageUrls.length > 0 ? imageUrls[0] : 'https://placehold.co/150x105/3E4246/FFFFFF?text=No+image',
-            imageUrls: imageUrls.length > 0 ? imageUrls : ['https://placehold.co/150x105/3E4246/FFFFFF?text=No+image'],
+            imageUrl: uniqueImageUrls.length > 0 ? uniqueImageUrls[0] : 'https://placehold.co/150x105/3E4246/FFFFFF?text=No+image',
+            imageUrls: uniqueImageUrls.length > 0 ? uniqueImageUrls : ['https://placehold.co/150x105/3E4246/FFFFFF?text=No+image'],
             brandName: item.brand?.Brand_Name || 'Unknown Brand',
             brandSlug: item.brand?.slug || 'unknown-brand',
             models: models,
@@ -290,27 +277,21 @@ export default function HomeScreen() {
             genders: item.genders && Array.isArray(item.genders) 
               ? item.genders.map(g => g?.Geander_Name || '').filter(Boolean)
               : [],
-            colors: item.colors && Array.isArray(item.colors) 
-              ? item.colors.map(c => c?.Name || '').filter(Boolean)
-              : [],
+            colors: finalColors, 
           };
         }));
-
+  
         setProducts(formattedProducts);
-
-        // Update categories from map ONLY if we found new categories from products
+  
         if (categoryMap.size > allCategories.length) {
-          // Convert the Map to an array
           const updatedCategories = Array.from(categoryMap.values());
           
-          // Sort so 'All' is always first
           updatedCategories.sort((a, b) => {
             if (a.slug === 'all') return -1;
             if (b.slug === 'all') return 1;
             return a.name.localeCompare(b.name);
           });
           
-          // Preserve the selected state from the current selectedCategory
           const finalCategories = updatedCategories.map(cat => ({
             ...cat,
             selected: cat.name === selectedCategory
@@ -319,7 +300,7 @@ export default function HomeScreen() {
           console.log('Updated categories with product data:', finalCategories);
           setCategories(finalCategories);
         }
-
+  
         // Group products by brands
         const brandMap = new Map<string, BrandWithProducts>();
         
@@ -338,90 +319,17 @@ export default function HomeScreen() {
         // Convert Map to array
         const brandsWithProducts = Array.from(brandMap.values());
         
-        // Use fallback data if no brands or error occurred
-        if (brandsWithProducts.length === 0) {
-          const demoProducts = recommendationsData.map(item => ({
-            slug: item.id,
-            Name: item.title,
-            Description: '',
-            Price: parseFloat(item.price.replace(/[^\d.]/g, '')),
-            imageUrl: item.image,
-            imageUrls: [item.image],
-            brandName: item.title.includes('Nike') ? 'Nike' : 
-                      item.title.includes('Adidas') ? 'Adidas' : 'Other Brand',
-            brandSlug: item.title.includes('Nike') ? 'nike' : 
-                      item.title.includes('Adidas') ? 'adidas' : 'other-brand',
-            categoryNames: ['Fashion'],
-            categoryIds: ['1'],
-            categorySlugs: ['fashion'],
-            genders: [],
-            colors: [],
-          }));
-          
-          const demoBrandMap = new Map<string, BrandWithProducts>();
-          
-          demoProducts.forEach(product => {
-            if (!demoBrandMap.has(product.brandSlug)) {
-              demoBrandMap.set(product.brandSlug, {
-                name: product.brandName,
-                slug: product.brandSlug,
-                products: []
-              });
-            }
-            
-            demoBrandMap.get(product.brandSlug)?.products.push(product);
-          });
-          
-          setBrandProducts(Array.from(demoBrandMap.values()));
-        } else {
-          setBrandProducts(brandsWithProducts);
-        }
+        setBrandProducts(brandsWithProducts);
         
         setError(null);
       } catch (err) {
         console.error('Error loading products:', err);
         setError('Failed to load data. Please check your connection.');
         
-        // Use demo data on error
-        const demoProducts = recommendationsData.map(item => ({
-          slug: item.id,
-          Name: item.title,
-          Description: '',
-          Price: parseFloat(item.price.replace(/[^\d.]/g, '')),
-          imageUrl: item.image,
-          imageUrls: [item.image],
-          brandName: item.title.includes('Nike') ? 'Nike' : 
-                    item.title.includes('Adidas') ? 'Adidas' : 'Other Brand',
-          brandSlug: item.title.includes('Nike') ? 'nike' : 
-                    item.title.includes('Adidas') ? 'adidas' : 'other-brand',
-          categoryNames: ['Fashion'],
-          categoryIds: ['1'],
-          categorySlugs: ['fashion'],
-          genders: [],
-          colors: [],
-        }));
-        
-        setProducts(demoProducts);
-        
-        // Group demo data by brands
-        const demoBrandMap = new Map<string, BrandWithProducts>();
-        
-        demoProducts.forEach(product => {
-          if (!demoBrandMap.has(product.brandSlug)) {
-            demoBrandMap.set(product.brandSlug, {
-              name: product.brandName,
-              slug: product.brandSlug,
-              products: []
-            });
-          }
-          
-          demoBrandMap.get(product.brandSlug)?.products.push(product);
-        });
-        
-        setBrandProducts(Array.from(demoBrandMap.values()));
-        
-        // Make sure initialCategories has 'All' first
-        setCategories(initialCategories);
+        // Если данные не загрузились, можно показать пустой список
+        setProducts([]);
+        setBrandProducts([]);
+        setCategories([{ id: 'all', name: 'All', slug: 'all', selected: true }]);
       } finally {
         setLoading(false);
       }
@@ -565,14 +473,17 @@ export default function HomeScreen() {
         style={styles.productCard}
         onPress={() => router.push(`../promo/${item.slug}`)}
       >
-        <View style={styles.productImageContainer}>
-          <Image 
-            source={{ uri: item.imageUrl }} 
-            style={styles.productImage} 
-            defaultSource={require('../../assets/images/bell_icon.png')}
-            resizeMode="cover"
-          />
-        </View>
+      <View style={styles.productContainer}>
+      <DominantColorBackground 
+        imageSrc={item.imageUrl} 
+        style={{ width: "100%", height: 170, borderRadius: 12, overflow: "hidden" }}>
+        <Image 
+          source={{ uri: item.imageUrl }} 
+          style={styles.productImage} 
+          defaultSource={require('../../assets/images/bell_icon.png')}
+          resizeMode="cover"
+        />
+      </DominantColorBackground>
         <View style={styles.productInfoContainer}>
           <Text style={styles.productTitle} numberOfLines={1} ellipsizeMode="tail">
             {item.Name}
@@ -587,11 +498,13 @@ export default function HomeScreen() {
           </View>
           <Text style={styles.productPrice}>${item.Price.toFixed(2)}</Text>
         </View>
+        </View>
+
       </TouchableOpacity>
     );
   };
   
-  // onPress={() => router.push(`../promo/${item.slug}`)}
+
 // Рендер секции с товарами определенного бренда
 const renderBrandSection = (brand: BrandWithProducts) => (
   <View style={styles.productSection} key={brand.slug}>
@@ -977,11 +890,16 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   productImage: {
-    width: '100%',
+    width: '125%',
     height: '100%',
   },
   productInfoContainer: {
     paddingHorizontal: 4,
+  },
+  productContainer: {
+    borderRadius: 12,
+    backgroundColor:"#eeeeee",
+    padding: 5
   },
   productTitle: {
     fontSize: 16,
@@ -1007,12 +925,12 @@ const styles = StyleSheet.create({
   },
   productBrand: {
     fontSize: 14,
-    color: '#666666',
+    color: '#000000',
     flex: 1,
   },
   productCategory: {
     fontSize: 14,
-    color: '#666666',
+    color: '#000000',
     textAlign: 'right',
     flex: 1,
   },

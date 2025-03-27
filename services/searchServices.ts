@@ -1,5 +1,5 @@
 // services/searchService.ts
-import { fetchModels, fetchProducts } from "./api";
+import { fetchModels, fetchProducts, IMG_API } from "./api";
 
 export interface Product {
   slug: string;
@@ -46,7 +46,7 @@ export const searchProducts = async (query: string, options?: SearchOptions): Pr
           }
           
           const path = relativePath.startsWith('/') ? relativePath : `/${relativePath}`;
-          return `http://192.168.0.103:1337${path}`;
+          return `${IMG_API}${path}`;
         };
 
     // Преобразуем данные API в нужный формат

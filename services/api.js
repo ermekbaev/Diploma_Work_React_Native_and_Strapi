@@ -1,12 +1,8 @@
 import axios from "axios";
 
-// Укажи URL своего Strapi-сервера (если локально, то замени на свой IP)
-const API_URL = "http://192.168.0.103:1337/api";
-// const API_URL = "http://localhost:1337/api";
+const API_URL = "http://192.168.0.104:1337/api";
+export const IMG_API = "http://192.168.0.104:1337";
 
-/**
- * Получение списка товаров с полной информацией
- */
 export const fetchProducts = async () => {
   try {
     const response = await axios.get(`${API_URL}/products?populate=*`);
@@ -27,9 +23,6 @@ export const fetchCategories = async () => {
   }
 };
 
-/**
- * Получение моделей с полной информацией
- */
 export const fetchModels = async (productId) => {
   try {
     const response = await axios.get(`${API_URL}/models?populate=*`);
@@ -41,16 +34,10 @@ export const fetchModels = async (productId) => {
   }
 };
 
-/**
- * Получение информации о конкретном товаре по ID
- */
-// Добавьте эту новую функцию для получения отдельного товара по ID/slug
 export const fetchProductById = async (slug) => {
   try {
-    // Кодируем slug для безопасного использования в URL
     const encodedSlug = encodeURIComponent(slug);
 
-    // Используем закодированный slug в URL
     const response = await fetch(
       `${API_URL}/products?filters[slug][$eq]=${slug}&populate=*`
     );

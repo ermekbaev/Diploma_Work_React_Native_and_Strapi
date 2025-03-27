@@ -13,7 +13,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { fetchModels, fetchProducts } from '../../../services/api';
+import { fetchModels, fetchProducts, IMG_API } from '../../../services/api';
+import DominantColorBackground from '@/components/Background/DominantColorBackground';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2; // 2 карточки в ширину с учетом padding
@@ -64,7 +65,7 @@ export default function BrandProductsScreen() {
             }
             
             const path = relativePath.startsWith('/') ? relativePath : `/${relativePath}`;
-            return `http://192.168.0.103:1337${path}`;
+            return `${IMG_API}${path}`;
           };
           
           // Фильтруем продукты по бренду
@@ -186,14 +187,16 @@ export default function BrandProductsScreen() {
         style={styles.productCard}
         onPress={() => router.push(`../promo/${item.slug}`)}
       >
-        <View style={styles.productImageContainer}>
+      {/* <DominantColorBackground  */}
+        {/* imageSrc={item.imageUrl} 
+        style={{ width: "100%", height: 170, borderRadius: 12, overflow: "hidden" }}> */}
           <Image 
             source={{ uri: item.imageUrl }} 
             style={styles.productImage} 
-            // defaultSource={require('../../assets/images/bell_icon.png')}
+            // defaultSource={require('../../assets/images/bell_icon.png')}ZZ
             resizeMode="cover"
           />
-        </View>
+        {/* </DominantColorBackground> */}
         <View style={styles.productInfoContainer}>
           <Text style={styles.productTitle} numberOfLines={1} ellipsizeMode="tail">
             {item.Name}
@@ -313,8 +316,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   productImage: {
-    width: '100%',
-    height: '100%',
+    width: '110%',
+    height: '110%',
   },
   productInfoContainer: {
     paddingHorizontal: 4,
