@@ -7,6 +7,7 @@ import { useEffect } from "react";
 import "react-native-reanimated";
 
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { AppProvider } from "@/context/AppContext";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -29,31 +30,33 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Stack
-        screenOptions={{
-          headerShown: false, // ✅ Убираем верхний заголовок
-        }}
-      >
-        {/* ✅ Главный контейнер с `Tabs` */}
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-
-        {/* ✅ Отдельный `Stack`, но он не скрывает `Tabs` */}
-        <Stack.Screen
-          name="(stack)"
-          options={{
-            presentation: "modal", // ✅ Открываем `Stack` поверх `Tabs`
-            headerShown: false,
+      <AppProvider>
+        <Stack
+          screenOptions={{
+            headerShown: false, // Убираем верхний заголовок
           }}
-        />
+        >
+          {/* Главный контейнер с Tabs */}
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 
-        {/* ✅ Страница 404 (по желанию) */}
-        <Stack.Screen name="+not-found" />
-      </Stack>
-      <StatusBar
-        translucent={false}
-        backgroundColor={colorScheme === "dark" ? "#1C1C1E" : "#FFFFFF"}
-        barStyle={colorScheme === "dark" ? "light-content" : "dark-content"}
-      />
+          {/* Отдельный Stack, но он не скрывает Tabs */}
+          <Stack.Screen
+            name="(stack)"
+            options={{
+              presentation: "modal", // Открываем Stack поверх Tabs
+              headerShown: false,
+            }}
+          />
+
+          {/* Страница 404 (по желанию) */}
+          <Stack.Screen name="+not-found" />
+        </Stack>
+        <StatusBar
+          translucent={false}
+          backgroundColor={colorScheme === "dark" ? "#1C1C1E" : "#FFFFFF"}
+          barStyle={colorScheme === "dark" ? "light-content" : "dark-content"}
+        />
+      </AppProvider>
     </ThemeProvider>
   );
 }

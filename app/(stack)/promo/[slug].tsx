@@ -2,22 +2,25 @@ import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import {
   View,
   Text,
-  Image,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
-  Dimensions,
   SafeAreaView
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useEffect, useState } from "react";
-import { fetchModelsByProductId, fetchProductById, IMG_API } from "../../../services/api";
-import DominantColorBackground from "@/components/Background/DominantColorBackground";
+import { fetchModelsByProductId, fetchProductById } from "@/services/api";
 
-// Общие константы и утилиты
-const SCREEN_WIDTH = Dimensions.get('window').width;
-const DEFAULT_IMAGE = "https://via.placeholder.com/400x320?text=No+Image+Available";
+// Компоненты
+import ProductImages from "@/components/Products/ProductImages";
+import ColorSelector from "@/components/Products/ColorSelector";
+import SizeSelector from "@/components/Products/SizeSelector";
+import SectionHeader from "@/components/ui/SectionHeader";
+
+// Утилиты
+import { getFullImageUrl } from "@/utils/imageHelpers";
+import { formatPrice, getColorBackground } from "@/utils/productHelpers";
 
 // Статические данные для использования при ошибках
 const FALLBACK_PRODUCT = {
@@ -26,25 +29,13 @@ const FALLBACK_PRODUCT = {
   Name: 'Продукт не найден',
   Description: 'К сожалению, не удалось загрузить информацию о продукте.',
   Price: 0,
-  imageUrls: [DEFAULT_IMAGE],
+  imageUrls: ["https://via.placeholder.com/400x320?text=No+Image+Available"],
   genders: [],
   colors: [],
   sizes: [],
 };
 
-
-// Утилита для получения полного URL изображения
-const getFullImageUrl = (relativePath?: string): string => {
-  if (!relativePath) return DEFAULT_IMAGE;
-
-  if (relativePath.startsWith("http://") || relativePath.startsWith("https://")) {
-    return relativePath;
-  }
-
-  const path = relativePath.startsWith("/") ? relativePath : `/${relativePath}`;
-  return `${IMG_API}${path}`;
-};
-
+// Интерфейсы для типизации
 interface Product {
   id: number;
   slug: string;
@@ -53,7 +44,7 @@ interface Product {
   Price: number;
   imageUrls: string[];
   genders: Array<{id: number, Gender_Name: string}>;
-  colors: Array<{id: number, Name: string}>;
+  colors: Array<{id: number, Name: string, colorCode?: string}>;
   sizes: Array<{id: number, Size: number}>;
   brand?: {
     id: number,
@@ -67,7 +58,7 @@ interface Product {
 
 interface ModelData {
   id: number;
-  colors: {id: number, Name: string};
+  colors: {id: number, Name: string, colorCode?: string};
   images: Array<{url: string}>;
 }
 
@@ -76,45 +67,47 @@ export default function PromoDetailScreen() {
   const router = useRouter();
   const navigation = useNavigation();
 
+  // Состояния данных
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [modelsData, setModelsData] = useState<ModelData[]>([]);
+  const [productImages, setProductImages] = useState<string[]>([]);
+  
+  // Состояния пользовательского выбора
   const [selectedColor, setSelectedColor] = useState<number | null>(null);
-  const [selectedImage, setSelectedImage] = useState<string>("");
   const [selectedSize, setSelectedSize] = useState<number | null>(null);
   const [favorite, setFavorite] = useState<boolean>(false);
-  const [productImages, setProductImages] = useState<string[]>([]);
-  const [modelsData, setModelsData] = useState<ModelData[]>([]);
   
+  // Функция загрузки данных о продукте
   const loadProduct = useCallback(async () => {
     try {
       setLoading(true);
       
+      // Получение данных о продукте
       const productData = await fetchProductById(slug as string);
       const productItem = productData?.data?.[0] || FALLBACK_PRODUCT;
       
+      // Получение моделей продукта
       const models = await fetchModelsByProductId(productItem.id);
       
+      // Обработка изображений
       const initialModel = models[0] || { images: [], colors: { id: null, Name: '' } };
       const imagesUrls = initialModel.images
         ? initialModel.images.map((image: any) => getFullImageUrl(image.url))
-        : [DEFAULT_IMAGE];
+        : ["https://via.placeholder.com/400x320?text=No+Image+Available"];
 
-        const uniqueColors = new Set();
-        const colorsArray = models
-          .map((model: ModelData) => model.colors)
-          .filter((color: any) => {
-            if (color && color.id && !uniqueColors.has(color.id)) {
-              uniqueColors.add(color.id);
-              return true;
-            }
-            return false;
-          })
-          .map((color: any) => ({
-            ...color,
-            colorCode: color.colorCode 
-          }));
-        
+      // Обработка цветов
+      const uniqueColors = new Set();
+      const colorsArray = models
+        .map((model: ModelData) => model.colors)
+        .filter((color: any) => {
+          if (color && color.id && !uniqueColors.has(color.id)) {
+            uniqueColors.add(color.id);
+            return true;
+          }
+          return false;
+        });
 
       // Обновляем продукт с полученными цветами
       const updatedProduct = {
@@ -125,7 +118,6 @@ export default function PromoDetailScreen() {
       setProduct(updatedProduct);
       setModelsData(models);
       setProductImages(imagesUrls);
-      setSelectedImage(imagesUrls[0]);
       setSelectedColor(colorsArray[0]?.id || null);
 
     } catch (err: any) {
@@ -136,21 +128,14 @@ export default function PromoDetailScreen() {
     }
   }, [slug]);
 
-  useEffect(() => {
-    if (slug) {
-      loadProduct();
-    }
-  }, [slug, loadProduct]);
-  
-
+  // Загрузка данных при монтировании компонента
   useEffect(() => {
     if (slug) {
       loadProduct();
     }
   }, [slug, loadProduct]);
 
-  
-  
+  // Управление видимостью таб-бара
   useEffect(() => {
     navigation.getParent()?.setOptions({ tabBarStyle: { display: "flex" } });
 
@@ -159,17 +144,21 @@ export default function PromoDetailScreen() {
     };
   }, [navigation]);
 
+  // Функции управления интерфейсом
   const toggleFavorite = () => {
     setFavorite(!favorite);
   };
 
+  // Обработчик выбора цвета
   const handleColorSelect = (colorId: number) => {
     setSelectedColor(colorId);
   
+    // Находим модель, соответствующую выбранному цвету
     const selectedModel = modelsData.find((model: ModelData) => 
       model.colors && model.colors.id === colorId
     );
 
+    // Обновляем изображения в соответствии с выбранным цветом
     if (selectedModel && selectedModel.images) {
       const imagesUrls = selectedModel.images.map((image: any) => 
         getFullImageUrl(image.url)
@@ -179,43 +168,29 @@ export default function PromoDetailScreen() {
         ? imagesUrls 
         : ["https://via.placeholder.com/400x320?text=No+Image+Available"]
       );
-      
-      if (imagesUrls.length > 0) {
-        setSelectedImage(imagesUrls[0]);
-      }
     }
   };
 
+  // Обработчик выбора размера
   const handleSizeSelect = (size: number) => {
     setSelectedSize(size);
   };
 
-  const handleThumbnailSelect = (image: string) => {
-    setSelectedImage(image);
-  };
-
+  // Получение имени цвета по ID
   const getColorNameById = (colorId: number | null) => {
     if (!colorId || !product?.colors) return "";
     const color = product.colors.find(c => c.id === colorId);
     return color ? color.Name : "";
   };
 
-  const getColorBackground = (color: {Name?: string, colorCode?: string}) => {
-    if (color.colorCode) {
-      return color.colorCode;
-    }
-  
-    const COLOR_MAP: Record<string, string> = {
-      'White': '#FFFFFF', 'Белый': '#FFFFFF',
-      'Black': '#000000', 'Черный': '#000000',
-      'Brown': '#8B4513', 'Коричневый': '#8B4513',
-      'Gray': '#808080', 'Серый': '#808080',
-      'Red': '#FF0000', 'Красный': '#FF0000',
-      default: '#CCCCCC'
-    };
-  
-    return COLOR_MAP[color.Name || ''] || COLOR_MAP.default;
+  // Обработчик добавления в корзину
+  const handleAddToCart = () => {
+    if (!selectedSize || !selectedColor) return;
+    
+    alert(`Product ${product?.Name} (size: ${selectedSize}, color: ${getColorNameById(selectedColor)}) added to cart`);
   };
+
+  // Отображение во время загрузки
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -225,6 +200,7 @@ export default function PromoDetailScreen() {
     );
   }
 
+  // Отображение в случае ошибки
   if (error || !product) {
     return (
       <View style={styles.errorContainer}>
@@ -239,6 +215,7 @@ export default function PromoDetailScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Верхняя панель */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={24} color="black" />
@@ -249,6 +226,7 @@ export default function PromoDetailScreen() {
       </View>
       
       <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Заголовок продукта */}
         <View style={styles.productHeader}>
           <View>
             <Text style={styles.productTitle}>{product.Name}</Text>
@@ -257,87 +235,49 @@ export default function PromoDetailScreen() {
             </Text>
           </View>
           <TouchableOpacity onPress={toggleFavorite} style={styles.favoriteButton}>
-            <Ionicons name={favorite ? "heart" : "heart-outline"} size={24} color={favorite ? "#FF3B30" : "black"} />
+            <Ionicons 
+              name={favorite ? "heart" : "heart-outline"} 
+              size={24} 
+              color={favorite ? "#FF3B30" : "black"} 
+            />
           </TouchableOpacity>
         </View>
         
-        <View style={styles.mainImageContainer}>
-          {selectedImage ? (
-            <DominantColorBackground imageSrc={selectedImage} >
-            <Image source={{ uri: selectedImage }} style={styles.mainImage} resizeMode="contain" />
-            </DominantColorBackground>
-          ) : (
-            <View style={styles.placeholderImage}>
-              <Text style={styles.placeholderText}>Image not available</Text>
-            </View>
-          )}
-        </View>
+        {/* Изображения товара */}
+        <ProductImages images={productImages} />
         
+        {/* Выбор цвета */}
         {product.colors && product.colors.length > 0 && (
-          <View style={styles.colorSelectionContainer}>
-            {product.colors.map((color) => (
-              <TouchableOpacity
-                key={color.id}
-                style={[
-                  styles.colorOption,
-                  { backgroundColor: getColorBackground(color) },
-                  selectedColor === color.id && styles.selectedColorOption,
-                  color.Name === 'White' || color.Name === 'Белый' ? { borderWidth: 1, borderColor: '#E0E0E0' } : {}
-                ]}
-                onPress={() => handleColorSelect(color.id)}
-              />
-            ))}
+          <View style={styles.sectionContainer}>
+            <ColorSelector
+              colors={product.colors}
+              selectedColorId={selectedColor}
+              onColorSelect={handleColorSelect}
+            />
           </View>
         )}
         
-        <Text style={styles.price}>{product.Price.toFixed(2)} ₽</Text>
+        {/* Цена товара */}
+        <Text style={styles.price}>{formatPrice(product.Price)}</Text>
         
-        {productImages.length > 1 && (
-          <View style={styles.thumbnailContainer}>
-            {productImages.slice(0, 4).map((image, index) => (
-              <TouchableOpacity
-                key={`thumb-${index}`}
-                style={[
-                  styles.thumbnail,
-                  selectedImage === image && styles.selectedThumbnail
-                ]}
-                onPress={() => handleThumbnailSelect(image)}
-              >
-                <DominantColorBackground imageSrc={image} >
-                <Image source={{ uri: image }} style={styles.thumbnailImage} resizeMode="contain" />
-                </DominantColorBackground>
-              </TouchableOpacity>
-            ))}
+        {/* Выбор размера */}
+        {product.sizes && product.sizes.length > 0 && (
+          <View style={styles.sectionContainer}>
+            <SizeSelector
+              sizes={product.sizes}
+              selectedSize={selectedSize}
+              onSizeSelect={handleSizeSelect}
+            />
           </View>
         )}
         
-        {/* Size selection */}
-        <Text style={styles.sectionTitle}>Select Size</Text>
-        <View style={styles.sizeContainer}>
-          {product.sizes && product.sizes.map((sizeObj) => (
-            <TouchableOpacity
-              key={sizeObj.id}
-              style={[
-                styles.sizeOption,
-                selectedSize === sizeObj.Size && styles.selectedSizeOption
-              ]}
-              onPress={() => handleSizeSelect(sizeObj.Size)}
-            >
-              <Text style={[
-                styles.sizeText,
-                selectedSize === sizeObj.Size && styles.selectedSizeText
-              ]}>
-                {sizeObj.Size}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
+        {/* Описание товара */}
         <View style={styles.descriptionContainer}>
           <Text style={styles.sectionTitle}>Description</Text>
           <Text style={styles.descriptionText}>{product.Description}</Text>
         </View>
         
+        {/* Информация о бренде */}
         {/* {product.brand && (
           <View style={styles.brandContainer}>
             <Text style={styles.sectionTitle}>Brand</Text>
@@ -348,6 +288,7 @@ export default function PromoDetailScreen() {
         <View style={styles.bottomSpacer} />
       </ScrollView>
 
+      {/* Кнопка добавления в корзину */}
       <View style={styles.bottomButtonContainer}>
         <TouchableOpacity 
           style={[
@@ -355,10 +296,7 @@ export default function PromoDetailScreen() {
             (!selectedSize || !selectedColor) && styles.disabledButton
           ]}
           disabled={!selectedSize || !selectedColor}
-          onPress={() => {
-            // You can add cart functionality here
-            alert(`Product ${product.Name} (size: ${selectedSize}, color: ${getColorNameById(selectedColor)}) added to cart`);
-          }}
+          onPress={handleAddToCart}
         >
           <Text style={styles.addToCartButtonText}>Add to Cart</Text>
         </TouchableOpacity>
@@ -401,47 +339,9 @@ const styles = StyleSheet.create({
     color: "#666666",
     marginTop: 2,
   },
-  mainImageContainer: {
-    width: SCREEN_WIDTH,
-    height: 320,
-    backgroundColor: "#FFFFFF",
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 10,
-    borderRadius: 12,
-  },
-  mainImage: {
-    width: "85%",
-    height: "100%",
-  },
-  placeholderImage: {
-    width: SCREEN_WIDTH,
-    height: "100%",
-    backgroundColor: "#F5F5F5",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  placeholderText: {
-    color: "#999999",
-    fontSize: 16,
-  },
-  colorSelectionContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginTop: 10,
+  sectionContainer: {
     paddingHorizontal: 16,
-    gap: 10,
-  },
-  colorOption: {
-    width: 20,
-    height: 20,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-  },
-  selectedColorOption: {
-    borderWidth: 2,
-    borderColor: "#000000",
+    marginHorizontal: 15,
   },
   price: {
     fontSize: 20,
@@ -452,33 +352,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginHorizontal: 15,
   },
-  thumbnailContainer: {
-    flexDirection: "row",
-    justifyContent: "flex-start",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    gap: 10,
-    marginBottom: 20,
-    marginHorizontal: 15,
-  },
-  thumbnail: {
-    width: 75,
-    height: 75,
-    borderColor: "#ffffff",
-    borderRadius: 12,
-    borderWidth: 0.5,
-    backgroundColor: "#FFFFFF",
-    marginHorizontal:3
-  },
-  selectedThumbnail: {
-    borderColor: "#d1cfcf",
-    borderWidth: 0.5,
-  },
-  thumbnailImage: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 12,
-  },
   sectionTitle: {
     fontSize: 16,
     fontWeight: "600",
@@ -486,34 +359,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     marginLeft: 15,
     paddingHorizontal: 16,
-  },
-  sizeContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    paddingHorizontal: 16,
-    marginHorizontal: 15,
-    gap: 8,
-  },
-  sizeOption: {
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    backgroundColor: "#FFFFFF",
-    minWidth: 50,
-    alignItems: "center",
-  },
-  selectedSizeOption: {
-    borderColor: "#000000",
-    backgroundColor: "#000000",
-  },
-  sizeText: {
-    fontSize: 12,
-    color: "#000000",
-  },
-  selectedSizeText: {
-    color: "#FFFFFF",
   },
   descriptionContainer: {
     marginTop: 10,

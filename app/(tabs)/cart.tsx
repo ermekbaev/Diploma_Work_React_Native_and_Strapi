@@ -2,98 +2,138 @@ import React from 'react';
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
   StatusBar,
   ScrollView,
+  ActivityIndicator
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter, useNavigation } from 'expo-router';
 
-const ShoppingCartScreen = () => {
-  // Sample data - this would normally come from your state management
-  const cartItems = [
-    {
-      id: 1,
-      name: 'Air Jordan Retro',
-      variant: 'Size 9, Beige',
-      price: 192.32,
-      image: require('../../assets/images/image1.png'), // You'll need these image assets
-    },
-    {
-      id: 2,
-      name: 'Nike Airmax',
-      variant: 'Size 10, White-Grey',
-      price: 180.22,
-      image: require('../../assets/images/image2.png'),
-    },
-    {
-      id: 3,
-      name: 'Air Jordan Retro',
-      variant: 'Size 8, Turquoise',
-      price: 192.32,
-      image: require('../../assets/images/image3.png'),
-    },
-  ];
+// Импортируем компоненты и хуки
+import CartItem from '@/components/Cart/CartItem';
+import CartSummary from '@/components/Cart/CartSummary';
+import useCart from '@/hooks/useCart';
 
-  // Calculate cart totals
-  const subtotal = cartItems.reduce((sum, item) => sum + item.price, 0);
-  const shipping = 9.99;
-  const total = subtotal + shipping;
+const CartScreen = () => {
+  const router = useRouter();
+  const navigation = useNavigation();
+  
+  // Получаем данные о корзине из хука
+  const {
+    cartItems,
+    loading,
+    error,
+    removeFromCart,
+    updateQuantity,
+    calculateSummary,
+    clearCart
+  } = useCart();
+
+  // Расчет итогов корзины
+  const cartSummary = calculateSummary();
+
+  // Обработчик перехода к оформлению заказа
+  const handleCheckout = () => {
+    // В будущем здесь будет переход на экран оформления заказа
+    alert('Переход к оформлению заказа');
+  };
+
+  // Обработчик продолжения покупок
+  const handleContinueShopping = () => {
+    // Используем прямую навигацию на главный экран
+    // @ts-ignore
+    navigation.navigate('index');
+  };
+
+  // Если корзина загружается
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Корзина</Text>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#000000" />
+          <Text style={styles.loadingText}>Загрузка корзины...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Если корзина пуста
+  if (cartItems.length === 0) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Корзина</Text>
+        </View>
+        
+        <View style={styles.emptyCartContainer}>
+          <Ionicons name="cart-outline" size={64} color="#CCCCCC" />
+          <Text style={styles.emptyCartText}>Ваша корзина пуста</Text>
+          <TouchableOpacity 
+            style={styles.continueShopping}
+            onPress={handleContinueShopping}
+          >
+            <Text style={styles.continueShoppingText}>Продолжить покупки</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
       
-      {/* Header */}
+      {/* Заголовок */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton}>
-          <Text style={styles.backButtonText}>{'<'}</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Cart</Text>
+        <Text style={styles.headerTitle}>Корзина</Text>
+        {cartItems.length > 0 && (
+          <TouchableOpacity onPress={clearCart}>
+            <Text style={styles.clearCartText}>Очистить</Text>
+          </TouchableOpacity>
+        )}
       </View>
       
       <ScrollView style={styles.scrollView}>
-        {/* Cart Items */}
+        {/* Товары в корзине */}
         <View style={styles.cartItemsContainer}>
           {cartItems.map((item) => (
-            <View key={item.id} style={styles.cartItem}>
-              <View style={styles.itemImageContainer}>
-                <Image source={item.image} style={styles.itemImage} />
-              </View>
-              <View style={styles.itemDetails}>
-                <Text style={styles.itemName}>{item.name}</Text>
-                <Text style={styles.itemVariant}>{item.variant}</Text>
-                <Text style={styles.itemPrice}>${item.price.toFixed(2)}</Text>
-              </View>
-            </View>
+            <CartItem 
+              key={item.id}
+              item={item}
+              onRemove={removeFromCart}
+              onQuantityChange={updateQuantity}
+              onPress={(slug) => {
+                // @ts-ignore
+                navigation.navigate('promo', { slug });
+              }}
+            />
           ))}
         </View>
         
-        {/* Summary */}
-        <View style={styles.summaryContainer}>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Subtotal</Text>
-            <Text style={styles.summaryValue}>${subtotal.toFixed(2)}</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Shipping</Text>
-            <Text style={styles.summaryValue}>${shipping.toFixed(2)}</Text>
-          </View>
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Total</Text>
-            <Text style={styles.totalValue}>${total.toFixed(2)}</Text>
-          </View>
-        </View>
+        {/* Итоги корзины */}
+        <CartSummary 
+          subtotal={cartSummary.subtotal}
+          shipping={cartSummary.shipping}
+          total={cartSummary.total}
+        />
         
-        {/* Spacer to ensure content is visible above the checkout button */}
+        {/* Отступ для обеспечения видимости контента над кнопкой оформления заказа */}
         <View style={styles.bottomSpacer} />
       </ScrollView>
       
-      {/* Checkout Button */}
+      {/* Кнопка оформления заказа */}
       <View style={styles.checkoutButtonContainer}>
-        <TouchableOpacity style={styles.checkoutButton}>
-          <Text style={styles.checkoutButtonText}>Proceed to Checkout</Text>
+        <TouchableOpacity 
+          style={styles.checkoutButton}
+          onPress={handleCheckout}
+        >
+          <Text style={styles.checkoutButtonText}>Оформить заказ</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -111,99 +151,58 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     padding: 15,
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
-  },
-  backButton: {
-    marginRight: 15,
-    padding: 5,
-  },
-  backButtonText: {
-    fontSize: 22,
-    fontWeight: '500',
-    color: '#333',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
   },
+  clearCartText: {
+    color: '#FF3B30',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    color: '#666666',
+    fontSize: 16,
+  },
+  emptyCartContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  emptyCartText: {
+    marginTop: 20,
+    fontSize: 18,
+    color: '#666666',
+    marginBottom: 20,
+  },
+  continueShopping: {
+    backgroundColor: '#000000',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  continueShoppingText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
   cartItemsContainer: {
     padding: 15,
   },
-  cartItem: {
-    flexDirection: 'row',
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  itemImageContainer: {
-    width: 70,
-    height: 70,
-    borderRadius: 10,
-    backgroundColor: '#f5f5f5',
-    marginRight: 15,
-    overflow: 'hidden',
-  },
-  itemImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  itemDetails: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  itemName: {
-    fontWeight: '500',
-    fontSize: 16,
-    marginBottom: 4,
-  },
-  itemVariant: {
-    color: '#777',
-    fontSize: 13,
-    marginBottom: 8,
-  },
-  itemPrice: {
-    fontWeight: '600',
-    fontSize: 15,
-  },
-  summaryContainer: {
-    padding: 15,
-    backgroundColor: '#f9f9f9',
-    marginTop: 15,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  summaryLabel: {
-    color: '#666',
-    fontSize: 14,
-  },
-  summaryValue: {
-    fontWeight: '500',
-    fontSize: 14,
-  },
-  totalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 15,
-    paddingTop: 15,
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-  },
-  totalLabel: {
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  totalValue: {
-    fontWeight: '700',
-    fontSize: 18,
-  },
   bottomSpacer: {
-    height: 80, // Ensure content is visible above the checkout button
+    height: 80,
   },
   checkoutButtonContainer: {
     position: 'absolute',
@@ -228,4 +227,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ShoppingCartScreen;
+export default CartScreen;

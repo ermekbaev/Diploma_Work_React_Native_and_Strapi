@@ -75,7 +75,7 @@ const SearchComponent: React.FC<SearchProps> = ({
           <FlatList
             data={searchResults}
             keyExtractor={(item, index) => `search-result-${index}`}
-            renderItem={({ item }) => renderResultItem(item)}
+            renderItem={(listItemData) => renderResultItem && renderResultItem(listItemData)}
             showsVerticalScrollIndicator={true}
             style={styles.resultsList}
           />
