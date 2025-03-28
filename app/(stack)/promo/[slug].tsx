@@ -6,11 +6,12 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
-  SafeAreaView
+  SafeAreaView,
+  Alert
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useEffect, useState } from "react";
-import { fetchModelsByProductId, fetchProductById } from "@/services/api";
+import { fetchModelsByProductId, fetchProductById, IMG_API } from "@/services/api";
 
 // Компоненты
 import ProductImages from "@/components/Products/ProductImages";
@@ -21,6 +22,9 @@ import SectionHeader from "@/components/ui/SectionHeader";
 // Утилиты
 import { getFullImageUrl } from "@/utils/imageHelpers";
 import { formatPrice, getColorBackground } from "@/utils/productHelpers";
+
+// Импортируем хук useCart для работы с корзиной
+import useCart from "@/hooks/useCart";
 
 // Статические данные для использования при ошибках
 const FALLBACK_PRODUCT = {
@@ -67,6 +71,9 @@ export default function PromoDetailScreen() {
   const router = useRouter();
   const navigation = useNavigation();
 
+  // Получаем функции для работы с корзиной из хука
+  const { addToCart, cartItems } = useCart();
+
   // Состояния данных
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -78,6 +85,9 @@ export default function PromoDetailScreen() {
   const [selectedColor, setSelectedColor] = useState<number | null>(null);
   const [selectedSize, setSelectedSize] = useState<number | null>(null);
   const [favorite, setFavorite] = useState<boolean>(false);
+  
+  // Состояние сообщения об успешном добавлении
+  const [addedToCart, setAddedToCart] = useState(false);
   
   // Функция загрузки данных о продукте
   const loadProduct = useCallback(async () => {
@@ -144,6 +154,17 @@ export default function PromoDetailScreen() {
     };
   }, [navigation]);
 
+  // Скрываем сообщение об успешном добавлении через 4 секунды
+  useEffect(() => {
+    if (addedToCart) {
+      const timer = setTimeout(() => {
+        setAddedToCart(false);
+      }, 4000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [addedToCart]);
+
   // Функции управления интерфейсом
   const toggleFavorite = () => {
     setFavorite(!favorite);
@@ -183,11 +204,47 @@ export default function PromoDetailScreen() {
     return color ? color.Name : "";
   };
 
+  // Получение объекта цвета по ID
+  const getColorById = (colorId: number | null) => {
+    if (!colorId || !product?.colors) return null;
+    return product.colors.find(c => c.id === colorId);
+  };
+
   // Обработчик добавления в корзину
-  const handleAddToCart = () => {
-    if (!selectedSize || !selectedColor) return;
+  const handleAddToCart = async () => {
+    if (!selectedSize || !selectedColor || !product) return;
     
-    alert(`Product ${product?.Name} (size: ${selectedSize}, color: ${getColorNameById(selectedColor)}) added to cart`);
+    // Получаем выбранный цвет
+    const color = getColorById(selectedColor);
+    if (!color) return;
+    
+    // Создаем объект продукта для добавления в корзину
+    const productToAdd = {
+      slug: product.slug,
+      Name: product.Name,
+      Price: product.Price,
+      imageUrl: productImages[0] || "https://via.placeholder.com/400x320?text=No+Image+Available"
+    };
+    
+    // Добавляем продукт в корзину и ждем результата
+    const success = await addToCart(productToAdd, color, selectedSize);
+    
+    if (success) {
+      // Показываем сообщение об успешном добавлении
+      setAddedToCart(true);
+    } else {
+      // В случае ошибки показываем сообщение об ошибке
+      Alert.alert(
+        "Ошибка",
+        "Не удалось добавить товар в корзину. Пожалуйста, попробуйте ещё раз.",
+        [{ text: "OK" }]
+      );
+    }
+  };
+
+  // Переход к корзине
+  const goToCart = () => {
+    router.navigate("/(tabs)/cart");
   };
 
   // Отображение во время загрузки
@@ -195,7 +252,7 @@ export default function PromoDetailScreen() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#000" />
-        <Text style={styles.loadingText}>Loading product...</Text>
+        <Text style={styles.loadingText}>Загрузка продукта...</Text>
       </View>
     );
   }
@@ -204,10 +261,10 @@ export default function PromoDetailScreen() {
   if (error || !product) {
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>{error || 'Product not found'}</Text>
+        <Text style={styles.errorText}>{error || 'Продукт не найден'}</Text>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="chevron-back" size={24} color="black" />
-          <Text style={{ color: "black", marginLeft: 5 }}>Back</Text>
+          <Text style={{ color: "black", marginLeft: 5 }}>Назад</Text>
         </TouchableOpacity>
       </View>
     );
@@ -220,7 +277,7 @@ export default function PromoDetailScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={24} color="black" />
         </TouchableOpacity>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={goToCart}>
           <Ionicons name="cart-outline" size={24} color="black" />
         </TouchableOpacity>
       </View>
@@ -273,20 +330,28 @@ export default function PromoDetailScreen() {
         
         {/* Описание товара */}
         <View style={styles.descriptionContainer}>
-          <Text style={styles.sectionTitle}>Description</Text>
+          <Text style={styles.sectionTitle}>Описание</Text>
           <Text style={styles.descriptionText}>{product.Description}</Text>
         </View>
         
-        {/* Информация о бренде */}
-        {/* {product.brand && (
-          <View style={styles.brandContainer}>
-            <Text style={styles.sectionTitle}>Brand</Text>
-            <Text style={styles.brandText}>{product.brand.Brand_Name}</Text>
-          </View>
-        )} */}
-        
         <View style={styles.bottomSpacer} />
       </ScrollView>
+
+      {/* Сообщение об успешном добавлении */}
+      {addedToCart && (
+        <View style={styles.successMessage}>
+          <View style={styles.successContent}>
+            <Ionicons name="checkmark-circle" size={20} color="#fff" />
+            <Text style={styles.successText}>Товар добавлен в корзину</Text>
+          </View>
+          <TouchableOpacity 
+            style={styles.goToCartButton}
+            onPress={goToCart}
+          >
+            <Text style={styles.goToCartText}>В корзину</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Кнопка добавления в корзину */}
       <View style={styles.bottomButtonContainer}>
@@ -298,7 +363,7 @@ export default function PromoDetailScreen() {
           disabled={!selectedSize || !selectedColor}
           onPress={handleAddToCart}
         >
-          <Text style={styles.addToCartButtonText}>Add to Cart</Text>
+          <Text style={styles.addToCartButtonText}>Добавить в корзину</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -318,6 +383,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 10,
     paddingBottom: 10,
+  },
+  cartButton: {
+    position: 'relative',
+    padding: 5,
+  },
+  cartBadge: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    backgroundColor: '#FF3B30',
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  cartBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   productHeader: {
     flexDirection: "row",
@@ -437,5 +523,43 @@ const styles = StyleSheet.create({
     padding: 10,
     backgroundColor: "#F0F0F0",
     borderRadius: 10,
+  },
+  successMessage: {
+    position: "absolute",
+    top: 70,
+    left: 20,
+    right: 20,
+    backgroundColor: "#4CAF50",
+    borderRadius: 8,
+    padding: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  successContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  successText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "600",
+    marginLeft: 8,
+  },
+  goToCartButton: {
+    backgroundColor: "#ffffff",
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 4,
+  },
+  goToCartText: {
+    color: "#4CAF50",
+    fontWeight: "600",
+    fontSize: 12,
   },
 });

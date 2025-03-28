@@ -1,6 +1,20 @@
 import { useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { CartItemType } from '@/components/Cart/CartItem';
+
+// Типы для корзины
+export interface CartItemType {
+  id: string;
+  productSlug: string;
+  name: string;
+  price: number;
+  quantity: number;
+  color: {
+    id: number;
+    name: string;
+  };
+  size: number;
+  imageUrl: string;
+}
 
 interface CartSummary {
   subtotal: number;
@@ -10,7 +24,7 @@ interface CartSummary {
 }
 
 /**
- * Хук для работы с корзиной
+ * Хук для управления корзиной
  */
 const useCart = () => {
   const [cartItems, setCartItems] = useState<CartItemType[]>([]);
@@ -19,26 +33,39 @@ const useCart = () => {
 
   // Загрузка корзины при первом рендере
   useEffect(() => {
-    const loadCart = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const storedCart = await AsyncStorage.getItem('cart');
-        
-        if (storedCart) {
-          setCartItems(JSON.parse(storedCart));
-        }
-      } catch (err: any) {
-        console.error('Error loading cart:', err);
-        setError('Failed to load cart');
-      } finally {
-        setLoading(false);
-      }
-    };
-    
     loadCart();
   }, []);
+
+  // Предотвращение множественных загрузок
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Функция загрузки корзины из AsyncStorage
+  const loadCart = useCallback(async () => {
+    // Если уже идет загрузка, не запускаем новую
+    if (isLoading) return;
+    
+    try {
+      setIsLoading(true);
+      setLoading(true);
+      setError(null);
+      
+      const storedCart = await AsyncStorage.getItem('cart');
+      
+      if (storedCart) {
+        setCartItems(JSON.parse(storedCart));
+      } else {
+        // Если корзина не найдена в хранилище, устанавливаем пустой массив
+        setCartItems([]);
+      }
+      
+    } catch (err: any) {
+      console.error('Ошибка загрузки корзины:', err);
+      setError('Не удалось загрузить корзину');
+    } finally {
+      setLoading(false);
+      setIsLoading(false);
+    }
+  }, [isLoading]);
 
   // Сохранение корзины при изменении
   useEffect(() => {
@@ -46,7 +73,7 @@ const useCart = () => {
       try {
         await AsyncStorage.setItem('cart', JSON.stringify(cartItems));
       } catch (err) {
-        console.error('Error saving cart:', err);
+        console.error('Ошибка сохранения корзины:', err);
       }
     };
     
@@ -56,7 +83,7 @@ const useCart = () => {
   }, [cartItems, loading]);
 
   // Добавление товара в корзину
-  const addToCart = useCallback((product: {
+  const addToCart = useCallback(async (product: {
     slug: string;
     Name: string;
     Price: number;
@@ -65,25 +92,28 @@ const useCart = () => {
     id: number;
     Name: string;
   }, size: number) => {
-    setCartItems(prevItems => {
+    try {
       // Создаем уникальный идентификатор
       const itemId = `${product.slug}-${color.id}-${size}`;
       
-      // Проверяем, есть ли уже такой товар в корзине
-      const existingItemIndex = prevItems.findIndex(item => item.id === itemId);
+      // Сначала получаем актуальную корзину из AsyncStorage
+      const storedCart = await AsyncStorage.getItem('cart');
+      let currentCart: CartItemType[] = storedCart ? JSON.parse(storedCart) : [];
       
+      // Проверяем, есть ли уже такой товар в корзине
+      const existingItemIndex = currentCart.findIndex(item => item.id === itemId);
+      
+      let updatedCart;
       if (existingItemIndex !== -1) {
         // Если товар уже есть, увеличиваем количество
-        const updatedItems = [...prevItems];
-        updatedItems[existingItemIndex] = {
-          ...updatedItems[existingItemIndex],
-          quantity: updatedItems[existingItemIndex].quantity + 1
+        updatedCart = [...currentCart];
+        updatedCart[existingItemIndex] = {
+          ...updatedCart[existingItemIndex],
+          quantity: updatedCart[existingItemIndex].quantity + 1
         };
-        
-        return updatedItems;
       } else {
         // Если товара нет, добавляем новый
-        return [...prevItems, {
+        updatedCart = [...currentCart, {
           id: itemId,
           productSlug: product.slug,
           name: product.Name,
@@ -97,35 +127,93 @@ const useCart = () => {
           imageUrl: product.imageUrl
         }];
       }
-    });
+      
+      // Сохраняем обновленную корзину в AsyncStorage
+      await AsyncStorage.setItem('cart', JSON.stringify(updatedCart));
+      
+      // Обновляем состояние
+      setCartItems(updatedCart);
+      
+      return true;
+    } catch (error) {
+      console.error('Error adding product to cart:', error);
+      return false;
+    }
   }, []);
 
   // Удаление товара из корзины
-  const removeFromCart = useCallback((itemId: string) => {
-    setCartItems(prevItems => prevItems.filter(item => item.id !== itemId));
+  const removeFromCart = useCallback(async (itemId: string) => {
+    try {
+      // Получаем текущую корзину из AsyncStorage
+      const storedCart = await AsyncStorage.getItem('cart');
+      if (!storedCart) return;
+      
+      // Фильтруем элементы корзины
+      const currentCart: CartItemType[] = JSON.parse(storedCart);
+      const updatedCart = currentCart.filter(item => item.id !== itemId);
+      
+      // Сохраняем обновленную корзину в AsyncStorage
+      await AsyncStorage.setItem('cart', JSON.stringify(updatedCart));
+      
+      // Обновляем состояние
+      setCartItems(updatedCart);
+      
+      return true;
+    } catch (error) {
+      console.error('Error removing product from cart:', error);
+      return false;
+    }
   }, []);
 
   // Изменение количества товара
-  const updateQuantity = useCallback((itemId: string, quantity: number) => {
-    if (quantity <= 0) {
-      // Если количество меньше или равно 0, удаляем товар
-      removeFromCart(itemId);
-      return;
-    }
-    
-    setCartItems(prevItems => 
-      prevItems.map(item => 
+  const updateQuantity = useCallback(async (itemId: string, quantity: number) => {
+    try {
+      if (quantity <= 0) {
+        // Если количество меньше или равно 0, удаляем товар
+        return await removeFromCart(itemId);
+      }
+      
+      // Получаем текущую корзину из AsyncStorage
+      const storedCart = await AsyncStorage.getItem('cart');
+      if (!storedCart) return false;
+      
+      // Обновляем количество товара
+      const currentCart: CartItemType[] = JSON.parse(storedCart);
+      const updatedCart = currentCart.map(item => 
         item.id === itemId 
           ? { ...item, quantity } 
           : item
-      )
-    );
+      );
+      
+      // Сохраняем обновленную корзину в AsyncStorage
+      await AsyncStorage.setItem('cart', JSON.stringify(updatedCart));
+      
+      // Обновляем состояние
+      setCartItems(updatedCart);
+      
+      console.log('Product quantity updated successfully');
+      return true;
+    } catch (error) {
+      console.error('Error updating product quantity:', error);
+      return false;
+    }
   }, [removeFromCart]);
 
   // Расчет итогов корзины
   const calculateSummary = useCallback((): CartSummary => {
     const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const shipping = cartItems.length > 0 ? 9.99 : 0;
+    
+    // Настраиваемые правила доставки
+    let shipping = 0;
+    if (cartItems.length > 0) {
+      if (subtotal < 3000) {
+        shipping = 299; // Стандартная доставка
+      } else if (subtotal < 5000) {
+        shipping = 199; // Скидка на доставку
+      }
+      // Бесплатная доставка при заказе от 5000
+    }
+    
     const total = subtotal + shipping;
     const itemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
     
@@ -138,8 +226,38 @@ const useCart = () => {
   }, [cartItems]);
 
   // Очистка корзины
-  const clearCart = useCallback(() => {
-    setCartItems([]);
+  const clearCart = useCallback(async () => {
+    try {
+      // Удаляем запись корзины из AsyncStorage
+      await AsyncStorage.removeItem('cart');
+      
+      // Обновляем состояние
+      setCartItems([]);
+      
+      console.log('Cart cleared successfully');
+      return true;
+    } catch (error) {
+      console.error('Error clearing cart:', error);
+      return false;
+    }
+  }, []);
+
+  // Проверка наличия товара в корзине
+  const isInCart = useCallback((productSlug: string, colorId: number, size: number) => {
+    const itemId = `${productSlug}-${colorId}-${size}`;
+    return cartItems.some(item => item.id === itemId);
+  }, [cartItems]);
+
+  // Получение количества товара в корзине
+  const getItemQuantity = useCallback((productSlug: string, colorId: number, size: number) => {
+    const itemId = `${productSlug}-${colorId}-${size}`;
+    const item = cartItems.find(item => item.id === itemId);
+    return item ? item.quantity : 0;
+  }, [cartItems]);
+
+  // Обновить весь массив корзины
+  const setCart = useCallback((items: CartItemType[]) => {
+    setCartItems(items);
   }, []);
 
   // Возвращаем все необходимые функции и состояния
@@ -147,11 +265,15 @@ const useCart = () => {
     cartItems,
     loading,
     error,
+    loadCart,
     addToCart,
     removeFromCart,
     updateQuantity,
     calculateSummary,
-    clearCart
+    clearCart,
+    isInCart,
+    getItemQuantity,
+    setCart
   };
 };
 
