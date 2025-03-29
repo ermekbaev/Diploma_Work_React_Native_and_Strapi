@@ -445,12 +445,12 @@ export default function PromoDetailScreen() {
         </View>
         
         {/* Brand information */}
-        {product.brand && (
+        {/* {product.brand && (
           <View style={styles.brandContainer}>
             <Text style={styles.sectionTitle}>Brand</Text>
             <Text style={styles.brandText}>{product.brand.Brand_Name}</Text>
           </View>
-        )}
+        )} */}
         
         <View style={styles.bottomSpacer} />
       </ScrollView>

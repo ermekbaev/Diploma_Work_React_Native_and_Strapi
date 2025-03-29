@@ -197,7 +197,6 @@ export default function HomeScreen() {
     try {
       // Используем настоящую функцию поиска из API
       const results = await searchProductsAPI(query, searchFilters);
-      console.log('Search results:', JSON.stringify(results, null, 2));
       setSearchResults(results);
     } catch (error) {
       console.error('Error searching products:', error);
@@ -308,10 +307,6 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
         {/* Компонент поиска */}
         <View style={styles.searchBarContainer}>
         <SearchComponent
@@ -350,6 +345,10 @@ export default function HomeScreen() {
           }}
         />
         </View>
+      <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
 
         {/* Промо-слайдер */}
         <PromoSlider items={promoData} />
@@ -415,6 +414,7 @@ const styles = StyleSheet.create({
   },
   searchBarContainer: {
     marginVertical: 16,
+    padding:16,
     width: '100%',
     zIndex: 1000
   },
