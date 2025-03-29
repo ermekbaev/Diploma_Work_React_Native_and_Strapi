@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Alert } from 'react-native';
 
 // Типы для корзины
 export interface CartItemType {
@@ -30,9 +31,30 @@ const useCart = () => {
   const [cartItems, setCartItems] = useState<CartItemType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Загрузка корзины при первом рендере
   useEffect(() => {
+    const loadCart = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const storedCart = await AsyncStorage.getItem('cart');
+        
+        if (storedCart) {
+          const parsedCart = JSON.parse(storedCart);
+          setCartItems(parsedCart);
+        }
+      } catch (err: any) {
+        console.error('Error loading cart:', err);
+        setError('Failed to load cart');
+      } finally {
+        setLoading(false);
+        setIsInitialized(true);
+      }
+    };
+    
     loadCart();
   }, []);
 
@@ -73,14 +95,16 @@ const useCart = () => {
       try {
         await AsyncStorage.setItem('cart', JSON.stringify(cartItems));
       } catch (err) {
-        console.error('Ошибка сохранения корзины:', err);
+        console.error('Error saving cart:', err);
+        setError('Failed to save cart');
       }
     };
     
-    if (!loading) {
+    // Only save after the initial load has completed
+    if (isInitialized) {
       saveCart();
     }
-  }, [cartItems, loading]);
+  }, [cartItems, isInitialized]);
 
   // Добавление товара в корзину
   const addToCart = useCallback(async (product: {
@@ -93,50 +117,46 @@ const useCart = () => {
     Name: string;
   }, size: number) => {
     try {
-      // Создаем уникальный идентификатор
-      const itemId = `${product.slug}-${color.id}-${size}`;
+      setCartItems(prevItems => {
+        // Create a unique identifier for this combination of product, color, and size
+        const itemId = `${product.slug}-${color.id}-${size}`;
+        
+        // Check if this item is already in the cart
+        const existingItemIndex = prevItems.findIndex(item => item.id === itemId);
+        
+        if (existingItemIndex !== -1) {
+          // If already in cart, increase quantity
+          const updatedItems = [...prevItems];
+          updatedItems[existingItemIndex] = {
+            ...updatedItems[existingItemIndex],
+            quantity: updatedItems[existingItemIndex].quantity + 1
+          };
+          
+          return updatedItems;
+        } else {
+          // If not in cart, add new item
+          return [...prevItems, {
+            id: itemId,
+            productSlug: product.slug,
+            name: product.Name,
+            price: product.Price,
+            quantity: 1,
+            color: {
+              id: color.id,
+              name: color.Name
+            },
+            size,
+            imageUrl: product.imageUrl
+          }];
+        }
+      });
       
-      // Сначала получаем актуальную корзину из AsyncStorage
-      const storedCart = await AsyncStorage.getItem('cart');
-      let currentCart: CartItemType[] = storedCart ? JSON.parse(storedCart) : [];
-      
-      // Проверяем, есть ли уже такой товар в корзине
-      const existingItemIndex = currentCart.findIndex(item => item.id === itemId);
-      
-      let updatedCart;
-      if (existingItemIndex !== -1) {
-        // Если товар уже есть, увеличиваем количество
-        updatedCart = [...currentCart];
-        updatedCart[existingItemIndex] = {
-          ...updatedCart[existingItemIndex],
-          quantity: updatedCart[existingItemIndex].quantity + 1
-        };
-      } else {
-        // Если товара нет, добавляем новый
-        updatedCart = [...currentCart, {
-          id: itemId,
-          productSlug: product.slug,
-          name: product.Name,
-          price: product.Price,
-          quantity: 1,
-          color: {
-            id: color.id,
-            name: color.Name
-          },
-          size,
-          imageUrl: product.imageUrl
-        }];
-      }
-      
-      // Сохраняем обновленную корзину в AsyncStorage
-      await AsyncStorage.setItem('cart', JSON.stringify(updatedCart));
-      
-      // Обновляем состояние
-      setCartItems(updatedCart);
+      // Show confirmation to the user
+      Alert.alert('Добавлено в корзину', 'Товар успешно добавлен в корзину!');
       
       return true;
     } catch (error) {
-      console.error('Error adding product to cart:', error);
+      console.error('Error adding to cart:', error);
       return false;
     }
   }, []);

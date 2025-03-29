@@ -15,7 +15,7 @@ const SimpleDominantBackground: React.FC<SimpleDominantBackgroundProps> = ({
   style, 
   color,
   defaultColor = "#f0f0f0",
-  opacity = 1
+  opacity = 0.4
 }) => {
   // Если цвет не передан, используем значение по умолчанию
   const backgroundColor = color ? hexToRgba(color, opacity) : defaultColor;

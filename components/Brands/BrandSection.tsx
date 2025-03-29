@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 
 import ProductCard from '@/components/Products/ProductCard';
 import { BrandWithProducts } from '@/utils/productHelpers';
+import { getProductBackgroundColor } from '@/utils/colorHalpers';
 
 interface BrandSectionProps {
   brand: BrandWithProducts;
@@ -39,7 +40,20 @@ const BrandSection: React.FC<BrandSectionProps> = ({
           showsHorizontalScrollIndicator={false}
           data={productsToShow}
           keyExtractor={(item) => item.slug}
-          renderItem={({ item }) => <ProductCard product={item} />}
+          renderItem={({ item }) => {
+            const backgroundColor = getProductBackgroundColor({
+              slug: item.slug,
+              Name: item.Name,
+              brandName: item.brandName,
+              imageUrl: item.imageUrl,
+            });
+
+            return (
+              <ProductCard
+               product={item}
+               />
+              );
+            }}
           contentContainerStyle={styles.productList}
         />
       ) : (

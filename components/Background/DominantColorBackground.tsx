@@ -26,7 +26,7 @@ const DominantColorBackground = ({ imageSrc, children, style }:any) => {
         const color = result.dominant || result.average || "#F8F8F8";
         
         // Используем прозрачность 0.7 (можете изменить на любое значение от 0 до 1)
-        const transparentColor = hexToRgba(color, 0.4);
+        const transparentColor = hexToRgba(color, 0.1);
         setBgColor(transparentColor);
       };
       

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { View, Image, StyleSheet, TouchableOpacity, Dimensions, Text } from 'react-native';
-import DominantColorBackground from '@/components/Background/DominantColorBackground';
 
 const { width } = Dimensions.get('window');
 
@@ -31,13 +30,13 @@ const ProductImages: React.FC<ProductImagesProps> = ({
     <View style={styles.container}>
       <View style={styles.mainImageContainer}>
         {selectedImage ? (
-          <DominantColorBackground imageSrc={selectedImage} style={styles.dominantBg}>
+          <View style={styles.imageBackground}>
             <Image 
               source={{ uri: selectedImage }} 
               style={styles.mainImage} 
               resizeMode="contain" 
             />
-          </DominantColorBackground>
+          </View>
         ) : (
           <View style={styles.placeholderImage}>
             <Text style={styles.placeholderText}>Image not available</Text>
@@ -56,13 +55,13 @@ const ProductImages: React.FC<ProductImagesProps> = ({
               ]}
               onPress={() => handleThumbnailSelect(index)}
             >
-              <DominantColorBackground imageSrc={image} style={styles.thumbnailBg}>
+              <View style={styles.thumbnailBackground}>
                 <Image 
                   source={{ uri: image }} 
                   style={styles.thumbnailImage} 
                   resizeMode="contain" 
                 />
-              </DominantColorBackground>
+              </View>
             </TouchableOpacity>
           ))}
         </View>
@@ -82,11 +81,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 15,
   },
-  dominantBg: {
+  imageBackground: {
     width: "100%",
     height: "100%",
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#f0f0f0', // Нейтральный светло-серый цвет
   },
   mainImage: {
     width: '85%',
@@ -117,11 +117,12 @@ const styles = StyleSheet.create({
     borderColor: '#ffffff',
     overflow: 'hidden',
   },
-  thumbnailBg: {
+  thumbnailBackground: {
     width: '100%',
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#f0f0f0', // Тот же цвет, что и для основного изображения
   },
   selectedThumbnail: {
     borderColor: '#d1cfcf',

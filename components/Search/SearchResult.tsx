@@ -8,14 +8,14 @@ interface SearchResultItemProps {
     brandName: string;
     Price: number;
     imageUrl: string;
-    genders: string[];
+    genders?: string[];
   };
   onPress: (slug: string) => void;
 }
 
 const SearchResultItem: React.FC<SearchResultItemProps> = ({ item, onPress }) => {
   // Определение приоритетного гендера для отображения
-  const getPriorityGender = (genders: string[]): string => {
+  const getPriorityGender = (genders: string[] = []): string => {
     if (!genders || genders.length === 0) return 'Универсальные';
     
     const unisex = genders.find(g => 
@@ -45,6 +45,14 @@ const SearchResultItem: React.FC<SearchResultItemProps> = ({ item, onPress }) =>
 
   const displayGender = getPriorityGender(item.genders);
   
+  // Функция для корректного отображения цены
+  const formatPrice = (price: number) => {
+    // Проверяем, что price - это число
+    if (typeof price !== 'number' || isNaN(price)) {
+      return '$0.00';
+    }
+    return `$${price.toFixed(2)}`;
+  };
 
   return (
     <TouchableOpacity 
@@ -63,7 +71,7 @@ const SearchResultItem: React.FC<SearchResultItemProps> = ({ item, onPress }) =>
           <Text style={styles.brand}>{item.brandName}</Text>
           <Text style={styles.category}>{displayGender}</Text>
         </View>
-        <Text style={styles.price}>${item.Price.toFixed(2)}</Text>
+        <Text style={styles.price}>{formatPrice(item.Price)}</Text>
       </View>
     </TouchableOpacity>
   );

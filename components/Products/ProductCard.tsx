@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
-import DominantColorBackground from '@/components/Background/DominantColorBackground';
 
 // Импортируем утилиты
 import { getPriorityGender, Product } from '@/utils/productHelpers';
@@ -15,7 +14,7 @@ interface ProductCardProps {
 const ProductCard: React.FC<ProductCardProps> = ({ 
   product, 
   onPress,
-  size = 'medium'
+  size = 'medium' 
 }) => {
   const router = useRouter();
   const displayGender = getPriorityGender(product.genders);
@@ -58,16 +57,20 @@ const ProductCard: React.FC<ProductCardProps> = ({
       onPress={handlePress}
     >
       <View style={styles.productContainer}>
-        <DominantColorBackground 
-          imageSrc={product.imageUrl} 
-          style={{ width: "100%", height: cardStyle.image.height, borderRadius: 12, overflow: "hidden" }}>
+        {/* Заменяем DominantColorBackground на обычный View с легким фоном */}
+        <View 
+          style={[
+            styles.imageBackground, 
+            { height: cardStyle.image.height }
+          ]}
+        >
           <Image 
             source={{ uri: product.imageUrl }} 
             style={styles.productImage} 
             defaultSource={require('../../assets/images/bell_icon.png')}
             resizeMode="cover"
           />
-        </DominantColorBackground>
+        </View>
         <View style={styles.productInfoContainer}>
           <Text style={styles.productTitle} numberOfLines={1} ellipsizeMode="tail">
             {product.Name}
@@ -89,15 +92,23 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
 const styles = StyleSheet.create({
   productCard: {
-    // Базовые стили для карточки, конкретные размеры устанавливаются динамически
+    // Базовые стили для карточки
   },
   productContainer: {
     borderRadius: 12,
-    backgroundColor: "#eeeeee",
+    backgroundColor: "#f8f8f8",
     padding: 5
   },
+  imageBackground: {
+    width: "100%",
+    borderRadius: 12,
+    overflow: "hidden",
+    backgroundColor: "#f0f0f0", // Нейтральный светло-серый цвет
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
   productImage: {
-    width: '125%',
+    width: '100%',
     height: '100%',
   },
   productInfoContainer: {
