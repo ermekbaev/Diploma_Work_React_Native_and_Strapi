@@ -1,15 +1,23 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, SafeAreaView, ScrollView, StatusBar } from 'react-native';
 import { Feather, MaterialIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useAppContext } from '@/context/AppContext';
 
 const ProfileScreen = () => {
+  const router = useRouter();
+  const { favorites } = useAppContext();
+  
+  // Количество избранных товаров
+  const favoritesCount = favorites ? favorites.length : 0;
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
       <ScrollView>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Profile</Text>
+          <Text style={styles.headerTitle}>Профиль</Text>
           <View style={styles.headerIcons}>
             <TouchableOpacity style={styles.iconButton}>
               <Feather name="bell" size={22} color="#000" />
@@ -28,37 +36,62 @@ const ProfileScreen = () => {
           />
           <Text style={styles.profileName}>Adilet Ermekbaev</Text>
           <TouchableOpacity style={styles.editButton}>
-            <Text style={styles.editButtonText}>Edit Profile</Text>
+            <Text style={styles.editButtonText}>Редактировать профиль</Text>
           </TouchableOpacity>
         </View>
 
         {/* Menu Items */}
         <View style={styles.menuContainer}>
+          {/* Добавляем пункт Избранное */}
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={() => router.push("../favorites")}
+          >
+            <View style={styles.menuIconContainer}>
+              <MaterialIcons name="favorite-outline" size={24} color="#4A4A4A" />
+            </View>
+            <View style={styles.menuTextContainer}>
+              <Text style={styles.menuTitle}>Избранное</Text>
+              <Text style={styles.menuSubtitle}>Сохраненные товары</Text>
+            </View>
+            {favoritesCount > 0 && (
+              <View style={styles.badgeContainer}>
+                <Text style={styles.badgeText}>{favoritesCount}</Text>
+              </View>
+            )}
+            <MaterialIcons name="chevron-right" size={24} color="#BBBBBB" />
+          </TouchableOpacity>
+          
           <MenuItem 
             icon="account-circle" 
-            title="Personal Information" 
-            subtitle="View your personal info" 
+            title="Личная информация" 
+            subtitle="Просмотр личных данных" 
+            onPress={() => {}}
           />
           <MenuItem 
             icon="settings" 
-            title="Settings" 
-            subtitle="App settings and preferences" 
+            title="Настройки" 
+            subtitle="Настройки приложения" 
+            onPress={() => {}}
           />
           <MenuItem 
             icon="help-outline" 
-            title="Help & Support" 
-            subtitle="Get help or contact support" 
+            title="Помощь" 
+            subtitle="Поддержка и справка" 
+            onPress={() => {}}
           />
           <MenuItem 
             icon="info-outline" 
-            title="About" 
-            subtitle="Terms, Privacy, and App info" 
+            title="О приложении" 
+            subtitle="Условия и политика" 
+            onPress={() => {}}
           />
           <MenuItem 
             icon="exit-to-app" 
-            title="Logout" 
+            title="Выйти" 
             subtitle="" 
             isLast={true}
+            onPress={() => {}}
           />
         </View>
       </ScrollView>
@@ -66,9 +99,12 @@ const ProfileScreen = () => {
   );
 };
 
-const MenuItem = ({ icon, title, subtitle, isLast = false } : any) => {
+const MenuItem = ({ icon, title, subtitle, isLast = false, onPress } : any) => {
   return (
-    <TouchableOpacity style={[styles.menuItem, isLast ? styles.lastMenuItem : null]}>
+    <TouchableOpacity 
+      style={[styles.menuItem, isLast ? styles.lastMenuItem : null]}
+      onPress={onPress}
+    >
       <View style={styles.menuIconContainer}>
         <MaterialIcons name={icon} size={24} color="#4A4A4A" />
       </View>
@@ -156,6 +192,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 10,
     marginHorizontal: 15,
+    marginBottom: 20,
     overflow: 'hidden',
   },
   menuItem: {
@@ -190,6 +227,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#8E8E93',
     marginTop: 2,
+  },
+  badgeContainer: {
+    backgroundColor: '#FF3B30',
+    minWidth: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+    paddingHorizontal: 5,
+  },
+  badgeText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 });
 

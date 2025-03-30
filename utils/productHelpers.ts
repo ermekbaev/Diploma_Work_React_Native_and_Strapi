@@ -31,27 +31,65 @@ export const getPriorityGender = (genders: string[]): string => {
   };
   
   
-  export const getColorBackground = (color: {Name?: string, colorCode?: string}): string => {
+  export const getColorBackground = (color: {name?: string, Name?: string, colorCode?: string}, opacity: number = 1): string => {
+    // Получаем hex-код цвета
+    let hexColor: string;
+    
     if (color.colorCode) {
-      return color.colorCode;
+      hexColor = color.colorCode;
+    } else {
+      const COLOR_MAP: Record<string, string> = {
+        'White': '#FFFFFF', 'Белый': '#FFFFFF',
+        'Black': '#000000', 'Черный': '#000000',
+        'Brown': '#8B4513', 'Коричневый': '#8B4513',
+        'Gray': '#808080', 'Серый': '#808080',
+        'Red': '#FF0000', 'Красный': '#FF0000',
+        'Blue': '#0000FF', 'Синий': '#0000FF',
+        'Green': '#008000', 'Зеленый': '#008000',
+        'Yellow': '#FFFF00', 'Желтый': '#FFFF00',
+        'Orange': '#FFA500', 'Оранжевый': '#FFA500',
+        'Purple': '#800080', 'Фиолетовый': '#800080',
+        'Pink': '#FFC0CB', 'Розовый': '#FFC0CB',
+        default: '#CCCCCC'
+      };
+      
+      // Проверяем оба возможных имени цвета (name и Name)
+      const colorName = color.Name || color.name || '';
+      hexColor = COLOR_MAP[colorName] || COLOR_MAP.default;
     }
+    
+    // Если нужна полная непрозрачность, возвращаем hex-код как есть
+    if (opacity >= 1) {
+      return hexColor;
+    }
+    
+    // Преобразуем hex в rgba с заданной прозрачностью
+    return hexToRgba(hexColor, opacity);
+  };
   
-    const COLOR_MAP: Record<string, string> = {
-      'White': '#FFFFFF', 'Белый': '#FFFFFF',
-      'Black': '#000000', 'Черный': '#000000',
-      'Brown': '#8B4513', 'Коричневый': '#8B4513',
-      'Gray': '#808080', 'Серый': '#808080',
-      'Red': '#FF0000', 'Красный': '#FF0000',
-      'Blue': '#0000FF', 'Синий': '#0000FF',
-      'Green': '#008000', 'Зеленый': '#008000',
-      'Yellow': '#FFFF00', 'Желтый': '#FFFF00',
-      'Orange': '#FFA500', 'Оранжевый': '#FFA500',
-      'Purple': '#800080', 'Фиолетовый': '#800080',
-      'Pink': '#FFC0CB', 'Розовый': '#FFC0CB',
-      default: '#CCCCCC'
-    };
-  
-    return COLOR_MAP[color.Name || ''] || COLOR_MAP.default;
+  // Вспомогательная функция для преобразования HEX в RGBA
+  const hexToRgba = (hex: string, alpha: number = 1): string => {
+    // Убираем # если есть
+    hex = hex.replace(/^#/, '');
+    
+    // Преобразуем в полный формат если это сокращенный hex (например #FFF)
+    if (hex.length === 3) {
+      hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+    }
+    
+    // Парсим hex значение
+    const bigint = parseInt(hex, 16);
+    
+    // Извлекаем RGB компоненты
+    const r = (bigint >> 16) & 255;
+    const g = (bigint >> 8) & 255;
+    const b = bigint & 255;
+    
+    // Убеждаемся, что alpha находится в диапазоне [0, 1]
+    alpha = Math.max(0, Math.min(1, alpha));
+    
+    // Возвращаем строку RGBA
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   };
 
 

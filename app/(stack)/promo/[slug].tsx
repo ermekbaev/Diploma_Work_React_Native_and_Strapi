@@ -23,6 +23,7 @@ import SectionHeader from "@/components/ui/SectionHeader";
 import { getFullImageUrl } from "@/utils/imageHelpers";
 import { formatPrice, getColorBackground } from "@/utils/productHelpers";
 import useCart from "@/hooks/useCart";
+import { useAppContext } from "@/context/AppContext";
 
 // Static data for use in case of errors
 const FALLBACK_PRODUCT = {
@@ -69,7 +70,8 @@ export default function PromoDetailScreen() {
   const router = useRouter();
   const navigation = useNavigation();
 
-  // Get cart functionality
+  // Получаем функции из контекста
+  const { addToFavorites, removeFromFavorites, isInFavorites } = useAppContext();
   const { addToCart, isInCart, getItemQuantity } = useCart();
 
   // Data states
@@ -133,6 +135,11 @@ export default function PromoDetailScreen() {
       if (updatedProduct.sizes && updatedProduct.sizes.length > 0) {
         setSelectedSize(updatedProduct.sizes[0].Size);
       }
+
+            // Проверяем, есть ли товар в избранном
+      if (defaultColorId !== null) {
+        setFavorite(isInFavorites(productItem.slug, defaultColorId));
+      }
       
       // Check if item is in cart
       if (defaultColorId && updatedProduct.sizes && updatedProduct.sizes.length > 0) {
@@ -163,6 +170,7 @@ export default function PromoDetailScreen() {
       navigation.getParent()?.setOptions({ tabBarStyle: { display: "flex" } });
     };
   }, [navigation]);
+  
   
   // Check if item is in cart and get quantity
   const checkCartStatus = useCallback((productSlug: string, colorId: number, size: number) => {
@@ -261,9 +269,41 @@ export default function PromoDetailScreen() {
     return '#F5F5F5';
   }, []);
 
-  // UI functions
+  // Функция для работы с избранным
   const toggleFavorite = () => {
-    setFavorite(!favorite);
+    if (!product || selectedColor === null) return;
+    
+    // Получаем выбранный цвет
+    const selectedColorObj = product.colors.find(c => c.id === selectedColor);
+    if (!selectedColorObj) return;
+    
+    // Создаем уникальный идентификатор для проверки
+    const itemId = `${product.slug}-${selectedColor}`;
+    
+    if (favorite) {
+      // Удаляем из избранного
+      removeFromFavorites(itemId);
+      setFavorite(false);
+      Alert.alert("Удалено из избранного", "Товар был удален из избранного");
+    } else {
+      // Добавляем в избранное
+      addToFavorites(
+        {
+          slug: product.slug,
+          Name: product.Name,
+          Price: product.Price,
+          imageUrl: productImages[0],
+          brandName: product.brand?.Brand_Name || 'Unknown Brand',
+        },
+        {
+          id: selectedColorObj.id,
+          name: selectedColorObj.Name,
+          colorCode: selectedColorObj.colorCode
+        }
+      );
+      setFavorite(true);
+      Alert.alert("Добавлено в избранное", "Товар был добавлен в избранное");
+    }
   };
 
   // Handle color selection
@@ -290,6 +330,11 @@ export default function PromoDetailScreen() {
     // Check if this combination is in the cart
     if (product && selectedSize) {
       checkCartStatus(product.slug, colorId, selectedSize);
+    }
+
+       // Обновляем статус избранного в зависимости от выбранного цвета
+    if (product) {
+      setFavorite(isInFavorites(product.slug, colorId));
     }
   };
 

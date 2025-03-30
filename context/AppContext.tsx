@@ -1,8 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import  useProducts  from '@/hooks/useProducts';
-import  useCategories  from '@/hooks/useCategories';
-import  useCart  from '@/hooks/useCart';
+import useProducts from '@/hooks/useProducts';
+import useCategories from '@/hooks/useCategories';
+import useCart from '@/hooks/useCart';
 import { Product, BrandWithProducts, Category } from '@/utils/productHelpers';
+import useFavorites, { FavoriteItem } from '@/hooks/useFavorites';
+
 
 // Определяем интерфейс для контекста
 interface AppContextType {
@@ -31,6 +33,15 @@ interface AppContextType {
   updateCartQuantity: (itemId: string, quantity: number) => void;
   cartSummary: { subtotal: number; shipping: number; total: number; itemCount: number };
   clearCart: () => void;
+  
+  // Избранное
+  favorites: FavoriteItem[];
+  favoritesLoading: boolean;
+  favoritesError: string | null;
+  addToFavorites: (product: any, color: any) => void;
+  removeFromFavorites: (itemId: string) => void;
+  isInFavorites: (productSlug: string, colorId: number) => boolean;
+  clearFavorites: () => void;
   
   // Поиск
   searchResults: Product[];
@@ -77,12 +88,22 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     clearCart
   } = useCart();
   
+  const {
+    favorites,
+    loading: favoritesLoading,
+    error: favoritesError,
+    addToFavorites,
+    removeFromFavorites,
+    isInFavorites,
+    clearFavorites
+  } = useFavorites();
+  
   // Для поиска используем более простой подход с состояниями
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   
-  // Функция поиска (заглушка)
+  // Функция поиска
   const searchProducts = async (query: string, filters?: any) => {
     setSearchLoading(true);
     
@@ -114,7 +135,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
   
   // Общее состояние загрузки приложения
-  const appLoading = productsLoading || categoriesLoading || cartLoading;
+  const appLoading = productsLoading || categoriesLoading || cartLoading || favoritesLoading;
   
   // Рассчитываем итоги корзины
   const cartSummary = calculateSummary();
@@ -146,6 +167,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     updateCartQuantity,
     cartSummary,
     clearCart,
+    
+    // Избранное
+    favorites,
+    favoritesLoading,
+    favoritesError,
+    addToFavorites,
+    removeFromFavorites,
+    isInFavorites,
+    clearFavorites,
     
     // Поиск
     searchResults,
