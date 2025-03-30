@@ -1,141 +1,132 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { getColorBackground } from '@/utils/productHelpers';
-import { FavoriteItem as FavoriteItemType } from '@/hooks/useFavorites';
+import { useRouter } from 'expo-router';
+import { useAppContext } from '@/context/AppContext';
 
 interface FavoriteItemProps {
-  item: FavoriteItemType;
-  onPress: (slug: string) => void;
-  onRemove: (id: string) => void;
+  item: any;
+  onRemove?: (id: string) => void;
 }
 
-const FavoriteItem: React.FC<FavoriteItemProps> = ({ item, onPress, onRemove }) => {
+const FavoriteItem: React.FC<FavoriteItemProps> = ({ item, onRemove }) => {
+  const router = useRouter();
+  const { removeFromFavorites } = useAppContext();
+  
+  // Проверяем, что item и product существуют
+  if (!item || !item.product) {
+    return null;
+  }
+  
+  const { id, product, color } = item;
+  
+  // Безопасное получение цены
+  const price = product.Price !== undefined ? product.Price : 0;
+  
+  // Обработчик нажатия на товар
+  const handlePress = () => {
+    router.push(`../promo/${product.slug}`);
+  };
+  
+  // Обработчик удаления из избранного
+  const handleRemove = () => {
+    if (onRemove) {
+      onRemove(id);
+    } else if (removeFromFavorites) {
+      removeFromFavorites(id);
+    }
+  };
+  
   return (
-    <View style={styles.container}>
-      <TouchableOpacity 
-        style={styles.itemContent}
-        onPress={() => onPress(item.productSlug)}
-        activeOpacity={0.7}
-      >
-        <View style={[
-          styles.imageContainer, 
-          { backgroundColor: getColorBackground(item.color, 0.1) }
-        ]}>
-          <Image
-            source={{ uri: item.imageUrl }}
-            style={styles.image}
-            defaultSource={require('../../assets/images/bell_icon.png')}
-            resizeMode="contain"
-          />
-        </View>
-
-        <View style={styles.infoContainer}>
-          <Text style={styles.name} numberOfLines={2}>{item.name}</Text>
+    <TouchableOpacity style={styles.container} onPress={handlePress}>
+      <View style={styles.imageContainer}>
+        <Image 
+          source={{ uri: product.imageUrl }} 
+          style={styles.image}
+          defaultSource={require('../../assets/images/bell_icon.png')}
+          resizeMode="cover"
+        />
+      </View>
+      
+      <View style={styles.infoContainer}>
+        <Text style={styles.productName} numberOfLines={2}>{product.Name}</Text>
+        
+        <View style={styles.detailsRow}>
+          <Text style={styles.brandName}>{product.brandName || 'Бренд'}</Text>
           
-          <View style={styles.detailsContainer}>
-            <View style={styles.colorContainer}>
-              <View 
-                style={[
-                  styles.colorSwatch, 
-                  { backgroundColor: getColorBackground(item.color) }
-                ]} 
-              />
-              <Text style={styles.colorName}>{item.color.name}</Text>
-            </View>
-            
-            <Text style={styles.price}>${item.price.toFixed(2)}</Text>
-          </View>
-          
-          <Text style={styles.brand}>{item.brandName}</Text>
+          {color && color.name && (
+            <Text style={styles.colorName}>Цвет: {color.name}</Text>
+          )}
         </View>
-      </TouchableOpacity>
-
-      <TouchableOpacity 
-        style={styles.removeButton} 
-        onPress={() => onRemove(item.id)}
-      >
-        <Ionicons name="close-circle" size={22} color="#FF3B30" />
-      </TouchableOpacity>
-    </View>
+        
+        <View style={styles.priceRow}>
+          <Text style={styles.price}>${typeof price === 'number' ? price.toFixed(2) : '0.00'}</Text>
+          
+          <TouchableOpacity style={styles.removeButton} onPress={handleRemove}>
+            <Ionicons name="trash-outline" size={20} color="#FF3B30" />
+          </TouchableOpacity>
+        </View>
+      </View>
+    </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    position: 'relative',
-    marginBottom: 16,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  itemContent: {
     flexDirection: 'row',
-    padding: 12,
+    backgroundColor: '#f8f8f8',
+    borderRadius: 12,
+    marginBottom: 15,
+    overflow: 'hidden',
+    padding: 10,
   },
   imageContainer: {
     width: 100,
     height: 100,
     borderRadius: 8,
-    marginRight: 12,
     overflow: 'hidden',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: '#ffffff',
   },
   image: {
-    width: '80%',
-    height: '80%',
+    width: '100%',
+    height: '100%',
   },
   infoContainer: {
     flex: 1,
+    marginLeft: 15,
     justifyContent: 'space-between',
   },
-  name: {
+  productName: {
     fontSize: 16,
     fontWeight: '600',
     color: '#000000',
-    marginBottom: 6,
+    marginBottom: 5,
   },
-  detailsContainer: {
+  detailsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 5,
+  },
+  brandName: {
+    fontSize: 14,
+    color: '#666666',
+  },
+  colorName: {
+    fontSize: 14,
+    color: '#666666',
+  },
+  priceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
-  },
-  colorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  colorSwatch: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    marginRight: 6,
-    borderWidth: 0.5,
-    borderColor: '#E0E0E0',
-  },
-  colorName: {
-    fontSize: 12,
-    color: '#666666',
   },
   price: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#000000',
   },
-  brand: {
-    fontSize: 12,
-    color: '#999999',
-  },
   removeButton: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    zIndex: 10,
+    padding: 5,
   },
 });
 

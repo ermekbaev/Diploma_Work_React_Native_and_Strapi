@@ -189,15 +189,12 @@ const useCart = () => {
   const updateQuantity = useCallback(async (itemId: string, quantity: number) => {
     try {
       if (quantity <= 0) {
-        // Если количество меньше или равно 0, удаляем товар
         return await removeFromCart(itemId);
       }
       
-      // Получаем текущую корзину из AsyncStorage
       const storedCart = await AsyncStorage.getItem('cart');
       if (!storedCart) return false;
       
-      // Обновляем количество товара
       const currentCart: CartItemType[] = JSON.parse(storedCart);
       const updatedCart = currentCart.map(item => 
         item.id === itemId 
@@ -205,13 +202,11 @@ const useCart = () => {
           : item
       );
       
-      // Сохраняем обновленную корзину в AsyncStorage
       await AsyncStorage.setItem('cart', JSON.stringify(updatedCart));
       
       // Обновляем состояние
       setCartItems(updatedCart);
       
-      console.log('Product quantity updated successfully');
       return true;
     } catch (error) {
       console.error('Error updating product quantity:', error);
@@ -254,7 +249,6 @@ const useCart = () => {
       // Обновляем состояние
       setCartItems([]);
       
-      console.log('Cart cleared successfully');
       return true;
     } catch (error) {
       console.error('Error clearing cart:', error);

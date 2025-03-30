@@ -123,6 +123,7 @@ export const getPriorityGender = (genders: string[]): string => {
   
 
   export interface Product {
+    sizes: any;
     slug: string;
     Name: string;
     Description: string;

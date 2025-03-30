@@ -430,7 +430,7 @@ export default function PromoDetailScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={24} color="black" />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.push('/cart')}>
+        <TouchableOpacity onPress={() => router.push('/(tabs)/cart')}>
           <Ionicons name="cart-outline" size={24} color="black" />
         </TouchableOpacity>
       </View>
@@ -509,7 +509,7 @@ export default function PromoDetailScreen() {
             </Text>
             <TouchableOpacity 
               style={styles.viewCartButton}
-              onPress={() => router.push('/cart')}
+              onPress={() => router.push('/(tabs)/cart')}
             >
               <Text style={styles.viewCartButtonText}>View Cart</Text>
             </TouchableOpacity>

@@ -1,413 +1,371 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  Modal, 
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Modal,
+  TouchableOpacity,
   ScrollView,
-  Switch,
-  ActivityIndicator
+  Dimensions
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
-import { getAvailableFilters, SearchFilters } from '@/services/searchServices';
 
 interface FilterModalProps {
   visible: boolean;
+  initialFilters: {
+    priceRange: number[];
+    brands: string[];
+    colors: string[];
+    sizes: number[];
+    genders: string[];
+    brandsOptions?: string[];
+    colorsOptions?: string[];
+    gendersOptions?: string[];
+    sizesOptions?: number[];
+  };
+  onApply: (filters: any) => void;
   onClose: () => void;
-  onApply: (filters: SearchFilters) => void;
-  currentFilters: SearchFilters;
 }
 
-interface FilterData {
-  brands: Array<{ slug: string; name: string }>;
-  categories: Array<{ slug: string; name: string }>;
-  genders: string[];
-  colors: string[];
-  priceRange: { min: number; max: number };
-}
+const { width } = Dimensions.get('window');
 
 const FilterModal: React.FC<FilterModalProps> = ({
   visible,
-  onClose,
+  initialFilters,
   onApply,
-  currentFilters
+  onClose
 }) => {
-  // Состояния для фильтров
-  const [filters, setFilters] = useState<SearchFilters>({
-    brands: [],
-    categories: [],
-    minPrice: undefined,
-    maxPrice: undefined,
-    genders: [],
-    colors: []
-  });
+  // Копируем начальные фильтры, чтобы не изменять оригинал
+  const [filters, setFilters] = useState({ ...initialFilters });
+  const [priceRange, setPriceRange] = useState(initialFilters.priceRange);
   
-  // Состояние для доступных значений фильтров
-  const [filterData, setFilterData] = useState<FilterData>({
-    brands: [],
-    categories: [],
-    genders: [],
-    colors: [],
-    priceRange: { min: 0, max: 100000 }
-  });
+  // Используем эти значения для слайдеров, чтобы избежать проблемы с позицией
+  const [minPrice, setMinPrice] = useState(initialFilters.priceRange[0]);
+  const [maxPrice, setMaxPrice] = useState(initialFilters.priceRange[1]);
   
-  // Состояние для слайдера цен
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 100000]);
+  // Флаг для отслеживания первой загрузки
+  const mountedRef = useRef(false);
   
-  // Состояние загрузки
-  const [loading, setLoading] = useState(true);
-  
-  // Загрузка данных фильтров при открытии модального окна
+  // Синхронизация фильтров при изменении props или открытии модального окна
   useEffect(() => {
     if (visible) {
-      loadFilterData();
-    }
-  }, [visible]);
-  
-  // Инициализация фильтров
-  useEffect(() => {
-    setFilters(currentFilters);
-    
-    // Устанавливаем диапазон цен из текущих фильтров или из данных по умолчанию
-    if (currentFilters.minPrice !== undefined || currentFilters.maxPrice !== undefined) {
-      setPriceRange([
-        currentFilters.minPrice !== undefined ? currentFilters.minPrice : filterData.priceRange.min,
-        currentFilters.maxPrice !== undefined ? currentFilters.maxPrice : filterData.priceRange.max
-      ]);
-    } else if (filterData.priceRange.min !== Infinity && filterData.priceRange.max !== 0) {
-      setPriceRange([filterData.priceRange.min, filterData.priceRange.max]);
-    }
-  }, [currentFilters, filterData]);
-  
-  // Загрузка данных фильтров
-  const loadFilterData = async () => {
-    try {
-      setLoading(true);
-      const data = await getAvailableFilters();
-      setFilterData(data);
+      setFilters({ ...initialFilters });
+      setPriceRange([...initialFilters.priceRange]);
       
-      // Если у нас нет ранее установленных цен, устанавливаем из полученных данных
-      if (filters.minPrice === undefined && filters.maxPrice === undefined) {
-        setPriceRange([data.priceRange.min, data.priceRange.max]);
-      }
-    } catch (error) {
-      console.error('Ошибка при загрузке данных фильтров:', error);
-    } finally {
-      setLoading(false);
+      // Важно: обновляем отдельные значения для слайдеров
+      setMinPrice(initialFilters.priceRange[0]);
+      setMaxPrice(initialFilters.priceRange[1]);
+      
+      // Отмечаем, что компонент смонтирован
+      mountedRef.current = true;
     }
-  };
+  }, [initialFilters, visible]);
   
-  // Обработчики изменения фильтров
-  const handleToggleBrand = (slug: string) => {
-    setFilters(prev => {
-      const brands = prev.brands || [];
-      if (brands.includes(slug)) {
-        return { ...prev, brands: brands.filter(b => b !== slug) };
-      } else {
-        return { ...prev, brands: [...brands, slug] };
-      }
-    });
-  };
-  
-  const handleToggleCategory = (slug: string) => {
-    setFilters(prev => {
-      const categories = prev.categories || [];
-      if (categories.includes(slug)) {
-        return { ...prev, categories: categories.filter(c => c !== slug) };
-      } else {
-        return { ...prev, categories: [...categories, slug] };
-      }
-    });
-  };
-  
-  const handleToggleGender = (gender: string) => {
-    setFilters(prev => {
-      const genders = prev.genders || [];
-      if (genders.includes(gender)) {
-        return { ...prev, genders: genders.filter(g => g !== gender) };
-      } else {
-        return { ...prev, genders: [...genders, gender] };
-      }
-    });
-  };
-  
-  const handleToggleColor = (color: string) => {
-    setFilters(prev => {
-      const colors = prev.colors || [];
-      if (colors.includes(color)) {
-        return { ...prev, colors: colors.filter(c => c !== color) };
-      } else {
-        return { ...prev, colors: [...colors, color] };
-      }
-    });
-  };
-  
-  const handlePriceRangeChange = (type: 'min' | 'max', value: number) => {
-    if (type === 'min') {
-      setPriceRange([value, priceRange[1]]);
-      setFilters(prev => ({
-        ...prev,
-        minPrice: value
-      }));
+  // Обработчики фильтров
+  const toggleBrand = (brand: string) => {
+    if (filters.brands.includes(brand)) {
+      setFilters({
+        ...filters,
+        brands: filters.brands.filter(b => b !== brand)
+      });
     } else {
-      setPriceRange([priceRange[0], value]);
-      setFilters(prev => ({
-        ...prev,
-        maxPrice: value
-      }));
+      setFilters({
+        ...filters,
+        brands: [...filters.brands, brand]
+      });
     }
   };
   
-  // Сброс фильтров
-  const handleReset = () => {
-    setFilters({
-      brands: [],
-      categories: [],
-      minPrice: undefined,
-      maxPrice: undefined,
-      genders: [],
-      colors: []
-    });
-    
-    // Сброс диапазона цен
-    if (filterData.priceRange.min !== Infinity && filterData.priceRange.max !== 0) {
-      setPriceRange([filterData.priceRange.min, filterData.priceRange.max]);
+  const toggleColor = (color: string) => {
+    if (filters.colors.includes(color)) {
+      setFilters({
+        ...filters,
+        colors: filters.colors.filter(c => c !== color)
+      });
     } else {
-      setPriceRange([0, 100000]);
+      setFilters({
+        ...filters,
+        colors: [...filters.colors, color]
+      });
     }
   };
   
-  // Применение фильтров
+  const toggleSize = (size: number) => {
+    if (filters.sizes.includes(size)) {
+      setFilters({
+        ...filters,
+        sizes: filters.sizes.filter(s => s !== size)
+      });
+    } else {
+      setFilters({
+        ...filters,
+        sizes: [...filters.sizes, size]
+      });
+    }
+  };
+  
+  const toggleGender = (gender: string) => {
+    if (filters.genders.includes(gender)) {
+      setFilters({
+        ...filters,
+        genders: filters.genders.filter(g => g !== gender)
+      });
+    } else {
+      setFilters({
+        ...filters,
+        genders: [...filters.genders, gender]
+      });
+    }
+  };
+  
+  // Обработчик изменения минимальной цены
+  const handleMinPriceChange = (value: number) => {
+    const newMinPrice = value > maxPrice ? maxPrice : value;
+    setMinPrice(newMinPrice);
+    setPriceRange([newMinPrice, maxPrice]);
+  };
+  
+  // Обработчик изменения максимальной цены
+  const handleMaxPriceChange = (value: number) => {
+    const newMaxPrice = value < minPrice ? minPrice : value;
+    setMaxPrice(newMaxPrice);
+    setPriceRange([minPrice, newMaxPrice]);
+  };
+  
+  // Обработчик применения фильтров
   const handleApply = () => {
-    onApply(filters);
-    onClose();
+    onApply({
+      ...filters,
+      priceRange: [minPrice, maxPrice] // Используем актуальные значения
+    });
   };
   
-  // Форматирование цены
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('ru-RU', {
-      style: 'currency',
-      currency: 'RUB',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(price);
-  };
-  
-  // Получение количества активных фильтров
-  const getActiveFiltersCount = () => {
-    let count = 0;
-    if (filters.brands && filters.brands.length > 0) count += filters.brands.length;
-    if (filters.categories && filters.categories.length > 0) count += filters.categories.length;
-    if (filters.genders && filters.genders.length > 0) count += filters.genders.length;
-    if (filters.colors && filters.colors.length > 0) count += filters.colors.length;
+  // Сброс всех фильтров
+  const handleReset = () => {
+    const resetFilters = {
+      ...initialFilters,
+      priceRange: [initialFilters.priceRange[0], initialFilters.priceRange[1]],
+      brands: [],
+      colors: [],
+      sizes: [],
+      genders: []
+    };
+    setFilters(resetFilters);
+    setPriceRange([initialFilters.priceRange[0], initialFilters.priceRange[1]]);
     
-    // Считаем диапазон цен как один фильтр, если он отличается от значений по умолчанию
-    if (filters.minPrice !== undefined && filters.minPrice > filterData.priceRange.min) count++;
-    if (filters.maxPrice !== undefined && filters.maxPrice < filterData.priceRange.max) count++;
-    
-    return count;
+    // Обновляем значения для слайдеров
+    setMinPrice(initialFilters.priceRange[0]);
+    setMaxPrice(initialFilters.priceRange[1]);
   };
+
+  // Определяем активность кнопки Reset
+  const isResetActive = 
+    filters.brands.length > 0 || 
+    filters.colors.length > 0 || 
+    filters.sizes.length > 0 || 
+    filters.genders.length > 0 ||
+    minPrice !== initialFilters.priceRange[0] ||
+    maxPrice !== initialFilters.priceRange[1];
   
   return (
     <Modal
-      visible={visible}
       animationType="slide"
       transparent={true}
+      visible={visible}
       onRequestClose={onClose}
     >
-      <View style={styles.modalContainer}>
-        <View style={styles.modalContent}>
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContainer}>
           {/* Заголовок модального окна */}
           <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <Ionicons name="close-outline" size={24} color="#000" />
+            </TouchableOpacity>
             <Text style={styles.modalTitle}>Фильтры</Text>
-            <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close" size={24} color="#000000" />
+            <TouchableOpacity 
+              onPress={handleReset}
+              disabled={!isResetActive}
+              style={[styles.resetButton, !isResetActive && styles.resetButtonDisabled]}
+            >
+              <Text 
+                style={[
+                  styles.resetButtonText, 
+                  !isResetActive && styles.resetButtonTextDisabled
+                ]}
+              >
+                Сбросить
+              </Text>
             </TouchableOpacity>
           </View>
           
-          {loading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#000000" />
-              <Text style={styles.loadingText}>Загрузка фильтров...</Text>
-            </View>
-          ) : (
-            <ScrollView style={styles.filtersContainer}>
-              {/* Фильтр по брендам */}
-              {filterData.brands.length > 0 && (
-                <View style={styles.filterSection}>
-                  <Text style={styles.filterTitle}>Бренды</Text>
-                  <View style={styles.filterOptionsContainer}>
-                    {filterData.brands.map(brand => (
-                      <TouchableOpacity
-                        key={brand.slug}
-                        style={[
-                          styles.filterOption,
-                          filters.brands?.includes(brand.slug) && styles.filterOptionSelected
-                        ]}
-                        onPress={() => handleToggleBrand(brand.slug)}
-                      >
-                        <Text
-                          style={[
-                            styles.filterOptionText,
-                            filters.brands?.includes(brand.slug) && styles.filterOptionTextSelected
-                          ]}
-                        >
-                          {brand.name}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-              )}
-              
-              {/* Фильтр по категориям */}
-              {filterData.categories.length > 0 && (
-                <View style={styles.filterSection}>
-                  <Text style={styles.filterTitle}>Категории</Text>
-                  <View style={styles.filterOptionsContainer}>
-                    {filterData.categories.map(category => (
-                      <TouchableOpacity
-                        key={category.slug}
-                        style={[
-                          styles.filterOption,
-                          filters.categories?.includes(category.slug) && styles.filterOptionSelected
-                        ]}
-                        onPress={() => handleToggleCategory(category.slug)}
-                      >
-                        <Text
-                          style={[
-                            styles.filterOptionText,
-                            filters.categories?.includes(category.slug) && styles.filterOptionTextSelected
-                          ]}
-                        >
-                          {category.name}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-              )}
-              
-              {/* Фильтр по полу */}
-              {filterData.genders.length > 0 && (
-                <View style={styles.filterSection}>
-                  <Text style={styles.filterTitle}>Пол</Text>
-                  <View style={styles.filterOptionsContainer}>
-                    {filterData.genders.map(gender => (
-                      <TouchableOpacity
-                        key={gender}
-                        style={[
-                          styles.filterOption,
-                          filters.genders?.includes(gender) && styles.filterOptionSelected
-                        ]}
-                        onPress={() => handleToggleGender(gender)}
-                      >
-                        <Text
-                          style={[
-                            styles.filterOptionText,
-                            filters.genders?.includes(gender) && styles.filterOptionTextSelected
-                          ]}
-                        >
-                          {gender}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-              )}
-              
-              {/* Фильтр по цене */}
-              <View style={styles.filterSection}>
-                <Text style={styles.filterTitle}>Диапазон цен</Text>
-                <View style={styles.priceRangeContainer}>
-                  <Text style={styles.priceValue}>
-                    {formatPrice(priceRange[0])}
-                  </Text>
-                  <Text style={styles.priceValue}>
-                    {formatPrice(priceRange[1])}
-                  </Text>
-                </View>
-                
+          {/* Содержимое фильтров */}
+          <ScrollView style={styles.modalContent}>
+            {/* Диапазон цен */}
+            <View style={styles.filterSection}>
+              <Text style={styles.filterTitle}>Цена</Text>
+              <View style={styles.priceRangeContainer}>
+                <Text style={styles.priceValue}>${Math.round(minPrice)}</Text>
                 <View style={styles.sliderContainer}>
                   <Slider
-                    style={styles.priceSlider}
-                    minimumValue={filterData.priceRange.min}
-                    maximumValue={filterData.priceRange.max}
-                    value={priceRange[0]}
-                    minimumTrackTintColor="#CCCCCC"
-                    maximumTrackTintColor="#000000"
-                    thumbTintColor="#000000"
-                    onValueChange={(value) => handlePriceRangeChange('min', value)}
-                  />
-                  
-                  <Slider
-                    style={styles.priceSlider}
-                    minimumValue={filterData.priceRange.min}
-                    maximumValue={filterData.priceRange.max}
-                    value={priceRange[1]}
-                    minimumTrackTintColor="#000000"
-                    maximumTrackTintColor="#CCCCCC"
-                    thumbTintColor="#000000"
-                    onValueChange={(value) => handlePriceRangeChange('max', value)}
+                    style={styles.slider}
+                    minimumValue={initialFilters.priceRange[0]}
+                    maximumValue={initialFilters.priceRange[1]}
+                    value={minPrice}
+                    maximumTrackTintColor="#D3D3D3"
+                    minimumTrackTintColor="#000"
+                    thumbTintColor="#000"
+                    onValueChange={handleMinPriceChange}
                   />
                 </View>
+                <Text style={styles.priceValue}>${Math.round(initialFilters.priceRange[1])}</Text>
               </View>
-              
-              {/* Фильтр по цветам */}
-              {filterData.colors.length > 0 && (
-                <View style={styles.filterSection}>
-                  <Text style={styles.filterTitle}>Цвета</Text>
-                  <View style={styles.filterOptionsContainer}>
-                    {filterData.colors.map(color => (
-                      <TouchableOpacity
-                        key={color}
-                        style={[
-                          styles.filterOption,
-                          filters.colors?.includes(color) && styles.filterOptionSelected
-                        ]}
-                        onPress={() => handleToggleColor(color)}
-                      >
-                        <Text
-                          style={[
-                            styles.filterOptionText,
-                            filters.colors?.includes(color) && styles.filterOptionTextSelected
-                          ]}
-                        >
-                          {color}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-              )}
-            </ScrollView>
-          )}
-          
-          {/* Нижняя панель с кнопками */}
-          <View style={styles.modalFooter}>
-            <View style={styles.activeFiltersContainer}>
-              <Text style={styles.activeFiltersText}>
-                Активные фильтры: {getActiveFiltersCount()}
-              </Text>
+              <View style={styles.sliderContainer}>
+                <Slider
+                  style={styles.slider}
+                  minimumValue={initialFilters.priceRange[0]}
+                  maximumValue={initialFilters.priceRange[1]}
+                  value={maxPrice}
+                  maximumTrackTintColor="#D3D3D3"
+                  minimumTrackTintColor="#000"
+                  thumbTintColor="#000"
+                  onValueChange={handleMaxPriceChange}
+                />
+              </View>
+              <View style={styles.priceLabelsContainer}>
+                <Text style={styles.priceRangeLabel}>
+                  Выбрано: ${Math.round(minPrice)} - ${Math.round(maxPrice)}
+                </Text>
+              </View>
             </View>
             
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity 
-                style={styles.resetButton}
-                onPress={handleReset}
-              >
-                <Text style={styles.resetButtonText}>Сбросить</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={styles.applyButton}
-                onPress={handleApply}
-              >
-                <Text style={styles.applyButtonText}>Применить</Text>
-              </TouchableOpacity>
-            </View>
+            {/* Бренды */}
+            {filters.brandsOptions && filters.brandsOptions.length > 0 && (
+              <View style={styles.filterSection}>
+                <Text style={styles.filterTitle}>Бренды</Text>
+                <View style={styles.optionsContainer}>
+                  {filters.brandsOptions.map((brand) => (
+                    <TouchableOpacity 
+                      key={brand}
+                      style={[
+                        styles.optionButton,
+                        filters.brands.includes(brand) && styles.optionButtonSelected
+                      ]}
+                      onPress={() => toggleBrand(brand)}
+                    >
+                      <Text 
+                        style={[
+                          styles.optionButtonText,
+                          filters.brands.includes(brand) && styles.optionButtonTextSelected
+                        ]}
+                      >
+                        {brand}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
+            
+            {/* Цвета */}
+            {filters.colorsOptions && filters.colorsOptions.length > 0 && (
+              <View style={styles.filterSection}>
+                <Text style={styles.filterTitle}>Цвета</Text>
+                <View style={styles.optionsContainer}>
+                  {filters.colorsOptions.map((color) => (
+                    <TouchableOpacity 
+                      key={color}
+                      style={[
+                        styles.optionButton,
+                        filters.colors.includes(color) && styles.optionButtonSelected
+                      ]}
+                      onPress={() => toggleColor(color)}
+                    >
+                      <Text 
+                        style={[
+                          styles.optionButtonText,
+                          filters.colors.includes(color) && styles.optionButtonTextSelected
+                        ]}
+                      >
+                        {color}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
+            
+            {/* Размеры */}
+            {filters.sizesOptions && filters.sizesOptions.length > 0 && (
+              <View style={styles.filterSection}>
+                <Text style={styles.filterTitle}>Размеры</Text>
+                <View style={styles.optionsContainer}>
+                  {filters.sizesOptions.map((size) => (
+                    <TouchableOpacity 
+                      key={size}
+                      style={[
+                        styles.sizeButton,
+                        filters.sizes.includes(size) && styles.sizeButtonSelected
+                      ]}
+                      onPress={() => toggleSize(size)}
+                    >
+                      <Text 
+                        style={[
+                          styles.sizeButtonText,
+                          filters.sizes.includes(size) && styles.sizeButtonTextSelected
+                        ]}
+                      >
+                        {size}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
+            
+            {/* Гендер/пол */}
+            {filters.gendersOptions && filters.gendersOptions.length > 0 && (
+              <View style={styles.filterSection}>
+                <Text style={styles.filterTitle}>Пол</Text>
+                <View style={styles.optionsContainer}>
+                  {filters.gendersOptions.map((gender) => (
+                    <TouchableOpacity 
+                      key={gender}
+                      style={[
+                        styles.optionButton,
+                        filters.genders.includes(gender) && styles.optionButtonSelected
+                      ]}
+                      onPress={() => toggleGender(gender)}
+                    >
+                      <Text 
+                        style={[
+                          styles.optionButtonText,
+                          filters.genders.includes(gender) && styles.optionButtonTextSelected
+                        ]}
+                      >
+                        {gender}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
+          </ScrollView>
+          
+          {/* Нижние кнопки */}
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity 
+              style={styles.cancelButton}
+              onPress={onClose}
+            >
+              <Text style={styles.cancelButtonText}>Отменить</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.applyButton}
+              onPress={handleApply}
+            >
+              <Text style={styles.applyButtonText}>Применить</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </View>
@@ -416,136 +374,165 @@ const FilterModal: React.FC<FilterModalProps> = ({
 };
 
 const styles = StyleSheet.create({
-  modalContainer: {
+  modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },
-  modalContent: {
-    backgroundColor: '#FFFFFF',
+  modalContainer: {
+    backgroundColor: '#fff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 30,
     maxHeight: '90%',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  closeButton: {
+    padding: 4,
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000000',
+    fontWeight: '600',
   },
-  loadingContainer: {
-    padding: 30,
-    alignItems: 'center',
+  resetButton: {
+    padding: 4,
   },
-  loadingText: {
-    marginTop: 10,
+  resetButtonDisabled: {
+    opacity: 0.5,
+  },
+  resetButtonText: {
     fontSize: 14,
-    color: '#666666',
+    color: '#ff3b30',
   },
-  filtersContainer: {
-    marginBottom: 16,
+  resetButtonTextDisabled: {
+    color: '#999',
+  },
+  modalContent: {
+    paddingHorizontal: 16,
+    maxHeight: '70%',
   },
   filterSection: {
-    marginBottom: 24,
+    marginVertical: 12,
   },
   filterTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000000',
-    marginBottom: 12,
-  },
-  filterOptionsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -4,
-  },
-  filterOption: {
-    backgroundColor: '#F5F5F5',
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    margin: 4,
-    borderWidth: 1,
-    borderColor: '#F5F5F5',
-  },
-  filterOptionSelected: {
-    backgroundColor: '#000000',
-    borderColor: '#000000',
-  },
-  filterOptionText: {
-    fontSize: 14,
-    color: '#333333',
-  },
-  filterOptionTextSelected: {
-    color: '#FFFFFF',
+    marginBottom: 8,
   },
   priceRangeContainer: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 8,
   },
-  priceValue: {
-    fontSize: 14,
-    color: '#333333',
-  },
   sliderContainer: {
-    marginTop: 8,
+    flex: 1,
+    marginHorizontal: 8,
   },
-  priceSlider: {
+  slider: {
     width: '100%',
     height: 40,
   },
-  modalFooter: {
-    borderTopWidth: 1,
-    borderTopColor: '#EEEEEE',
-    paddingTop: 16,
-  },
-  activeFiltersContainer: {
-    marginBottom: 12,
-  },
-  activeFiltersText: {
+  priceValue: {
     fontSize: 14,
-    color: '#666666',
+    fontWeight: '500',
+    minWidth: 40,
+    textAlign: 'center',
+  },
+  priceLabelsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 4,
+  },
+  priceRangeLabel: {
+    fontSize: 14,
+    color: '#666',
+  },
+  optionsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  optionButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginRight: 8,
+    marginBottom: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    backgroundColor: '#fff',
+  },
+  optionButtonSelected: {
+    backgroundColor: '#000',
+    borderColor: '#000',
+  },
+  optionButtonText: {
+    fontSize: 14,
+  },
+  optionButtonTextSelected: {
+    color: '#fff',
+  },
+  sizeButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+    marginBottom: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    backgroundColor: '#fff',
+  },
+  sizeButtonSelected: {
+    backgroundColor: '#000',
+    borderColor: '#000',
+  },
+  sizeButtonText: {
+    fontSize: 14,
+  },
+  sizeButtonTextSelected: {
+    color: '#fff',
   },
   buttonContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
   },
-  resetButton: {
+  cancelButton: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#000000',
-    borderRadius: 8,
     paddingVertical: 12,
     marginRight: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#000',
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  resetButtonText: {
+  cancelButtonText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#000000',
+    fontWeight: '500',
   },
   applyButton: {
     flex: 1,
-    backgroundColor: '#000000',
-    borderRadius: 8,
     paddingVertical: 12,
     marginLeft: 8,
+    borderRadius: 8,
+    backgroundColor: '#000',
+    justifyContent: 'center',
     alignItems: 'center',
   },
   applyButtonText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontWeight: '500',
+    color: '#fff',
   },
 });
 

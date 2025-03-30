@@ -1,23 +1,21 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import useProducts from '@/hooks/useProducts';
 import useCategories from '@/hooks/useCategories';
 import useCart from '@/hooks/useCart';
-import { Product, BrandWithProducts, Category } from '@/utils/productHelpers';
-import useFavorites, { FavoriteItem } from '@/hooks/useFavorites';
-
 
 // Определяем интерфейс для контекста
 interface AppContextType {
   // Продукты
-  products: Product[];
-  brandProducts: BrandWithProducts[];
+  products: any[];
+  brandProducts: any[];
   productsLoading: boolean;
   productsError: string | null;
   refreshProducts: () => void;
-  filterProductsByCategory: (categoryName: string) => BrandWithProducts[];
+  filterProductsByCategory: (categoryName: string) => any[];
   
   // Категории
-  categories: Category[];
+  categories: any[];
   selectedCategory: string;
   categoriesLoading: boolean;
   categoriesError: string | null;
@@ -35,16 +33,17 @@ interface AppContextType {
   clearCart: () => void;
   
   // Избранное
-  favorites: FavoriteItem[];
+  favorites: any[];
   favoritesLoading: boolean;
   favoritesError: string | null;
   addToFavorites: (product: any, color: any) => void;
-  removeFromFavorites: (itemId: string) => void;
+  removeFromFavorites: (favoriteId: string) => void;
+  getFavorites: () => any[];
   isInFavorites: (productSlug: string, colorId: number) => boolean;
-  clearFavorites: () => void;
+  toggleFavorite: (product: any, color: any) => void;
   
   // Поиск
-  searchResults: Product[];
+  searchResults: any[];
   searchLoading: boolean;
   searchError: string | null;
   searchProducts: (query: string, filters?: any) => void;
@@ -88,18 +87,97 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     clearCart
   } = useCart();
   
-  const {
-    favorites,
-    loading: favoritesLoading,
-    error: favoritesError,
-    addToFavorites,
-    removeFromFavorites,
-    isInFavorites,
-    clearFavorites
-  } = useFavorites();
+  // Состояние для избранного
+  const [favorites, setFavorites] = useState<any[]>([]);
+  const [favoritesLoading, setFavoritesLoading] = useState(true);
+  const [favoritesError, setFavoritesError] = useState<string | null>(null);
+  
+  // Загрузка избранного при монтировании
+  useEffect(() => {
+    loadFavorites();
+  }, []);
+  
+  // Функция загрузки избранного из AsyncStorage
+  const loadFavorites = async () => {
+    try {
+      setFavoritesLoading(true);
+      const storedFavorites = await AsyncStorage.getItem('favorites');
+      
+      if (storedFavorites) {
+        setFavorites(JSON.parse(storedFavorites));
+      }
+      
+      setFavoritesError(null);
+    } catch (error) {
+      console.error('Ошибка при загрузке избранного:', error);
+      setFavoritesError('Не удалось загрузить избранное');
+    } finally {
+      setFavoritesLoading(false);
+    }
+  };
+  
+  // Сохранение избранного при изменении
+  useEffect(() => {
+    const saveFavorites = async () => {
+      try {
+        await AsyncStorage.setItem('favorites', JSON.stringify(favorites));
+      } catch (error) {
+        console.error('Ошибка при сохранении избранного:', error);
+      }
+    };
+    
+    if (!favoritesLoading) {
+      saveFavorites();
+    }
+  }, [favorites, favoritesLoading]);
+  
+  // Функция для получения текущего списка избранного
+  const getFavorites = () => {
+    return favorites;
+  };
+  
+  // Добавление товара в избранное
+  const addToFavorites = (product: any, color: any) => {
+    const favoriteId = `${product.slug}-${color.id}`;
+    
+    // Проверяем, есть ли такой товар уже в избранном
+    const exists = favorites.some(item => item.id === favoriteId);
+    
+    if (!exists) {
+      const newFavorite = {
+        id: favoriteId,
+        product,
+        color
+      };
+      
+      setFavorites(prev => [...prev, newFavorite]);
+    }
+  };
+  
+  // Удаление товара из избранного
+  const removeFromFavorites = (favoriteId: string) => {
+    setFavorites(prev => prev.filter(item => item.id !== favoriteId));
+  };
+  
+  // Проверка наличия товара в избранном
+  const isInFavorites = (productSlug: string, colorId: number): boolean => {
+    const favoriteId = `${productSlug}-${colorId}`;
+    return favorites.some(item => item.id === favoriteId);
+  };
+  
+  // Переключение статуса избранного
+  const toggleFavorite = (product: any, color: any) => {
+    const favoriteId = `${product.slug}-${color.id}`;
+    
+    if (isInFavorites(product.slug, color.id)) {
+      removeFromFavorites(favoriteId);
+    } else {
+      addToFavorites(product, color);
+    }
+  };
   
   // Для поиска используем более простой подход с состояниями
-  const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   
@@ -110,7 +188,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     try {
       // Фильтруем существующие продукты
       if (query.length > 0) {
-        const results = products.filter((product:any) => {
+        const results = products.filter(product => {
           const searchLower = query.toLowerCase();
           return (
             product.Name.toLowerCase().includes(searchLower) ||
@@ -126,8 +204,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       
       setSearchError(null);
     } catch (error: any) {
-      console.error('Search error:', error);
-      setSearchError('Ошибка при поиске');
+      console.error('Ошибка при поиске:', error);
+      setSearchError('Ошибка при поиске товаров');
       setSearchResults([]);
     } finally {
       setSearchLoading(false);
@@ -174,8 +252,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     favoritesError,
     addToFavorites,
     removeFromFavorites,
+    getFavorites,
     isInFavorites,
-    clearFavorites,
+    toggleFavorite,
     
     // Поиск
     searchResults,

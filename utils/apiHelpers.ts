@@ -1,3 +1,4 @@
+// utils/apiHelpers.ts (обновленная версия)
 import { getFullImageUrl, extractImagesFromModels } from './imageHelpers';
 
 export interface ProductApiResponse {
@@ -20,8 +21,8 @@ export interface ProductApiResponse {
   };
   genders: Array<{ Geander_Name: string }>;
   colors: Array<{ Name: string }>;
+  sizes?: Array<{ id: number, Size: number }>;
 }
-
 
 export interface FormattedProduct {
   slug: string;
@@ -37,8 +38,8 @@ export interface FormattedProduct {
   categorySlugs: string[];
   genders: string[];
   colors: string[];
+  sizes: number[]; // Добавили поле sizes для хранения доступных размеров
 }
-
 
 export const formatApiProduct = async (item: ProductApiResponse, models: any[]): Promise<FormattedProduct> => {
   // Извлекаем URL-ы изображений из моделей
@@ -85,6 +86,11 @@ export const formatApiProduct = async (item: ProductApiResponse, models: any[]):
     }
   }
   
+  // Получаем доступные размеры
+  const sizes = item.sizes && Array.isArray(item.sizes)
+    ? item.sizes.map(size => size.Size)
+    : [];
+  
   // Возвращаем отформатированный объект продукта
   return {
     slug: item.slug || 'no-slug',
@@ -102,9 +108,9 @@ export const formatApiProduct = async (item: ProductApiResponse, models: any[]):
       ? item.genders.map(g => g?.Geander_Name || '').filter(Boolean)
       : [],
     colors: finalColors,
+    sizes: sizes,
   };
 };
-
 
 export const groupProductsByBrand = (products: FormattedProduct[]) => {
   const brandMap = new Map<string, { name: string, slug: string, products: FormattedProduct[] }>();

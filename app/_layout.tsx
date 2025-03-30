@@ -1,5 +1,3 @@
-import 'react-native-gesture-handler'; // Добавьте эту строку в самом начале файла
-
 import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
@@ -35,18 +33,19 @@ export default function RootLayout() {
       <AppProvider>
         <Stack
           screenOptions={{
-            headerShown: false, // Убираем верхний заголовок
+            headerShown: false,
           }}
         >
           {/* Главный контейнер с Tabs */}
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 
-          {/* Отдельный Stack, но он не скрывает Tabs */}
+          {/* Отдельный Stack для модальных экранов */}
           <Stack.Screen
             name="(stack)"
             options={{
-              presentation: "modal", // Открываем Stack поверх Tabs
+              presentation: "card", // Вместо "modal" используем "card"
               headerShown: false,
+              animation: "slide_from_right", // Анимация справа налево
             }}
           />
 

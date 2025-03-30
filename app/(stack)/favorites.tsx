@@ -75,24 +75,17 @@ export default function FavoritesScreen() {
   // Обработчик удаления из избранного
   const handleRemove = (itemId: string) => {
     removeFromFavorites(itemId);
-    // Также обновляем локальное состояние для мгновенной обратной связи
     setLocalFavorites(prev => prev.filter(item => item.id !== itemId));
   };
 
   // Принудительная очистка избранного
   const handleForceCleanup = async () => {
     try {
-      console.log('Начинаем принудительную очистку избранного...');
       setIsClearing(true);
-
-      // 1. Очистка AsyncStorage
       await AsyncStorage.removeItem('favorites');
-      console.log('AsyncStorage очищен');
       
-      // 2. Обновляем локальное состояние немедленно
       setLocalFavorites([]);
       
-      // 3. Короткая задержка для анимации и затем завершаем процесс очистки
       setTimeout(() => {
         setIsClearing(false);
       }, 500);
