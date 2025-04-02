@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface FilterModalProps {
   visible: boolean;
@@ -26,6 +27,8 @@ interface FilterModalProps {
   };
   onApply: (filters: any) => void;
   onClose: () => void;
+  isDark?: boolean;
+  colors?: any;
 }
 
 const { width } = Dimensions.get('window');
@@ -34,8 +37,15 @@ const FilterModal: React.FC<FilterModalProps> = ({
   visible,
   initialFilters,
   onApply,
-  onClose
+  onClose,
+  isDark: propIsDark,
+  colors: propColors
 }) => {
+  // Получаем данные темы из контекста, если они не переданы через пропсы
+  const { theme, colors: themeColors } = useAppTheme();
+  const isDark = propIsDark !== undefined ? propIsDark : theme === 'dark';
+  const colors = propColors || themeColors;
+
   // Копируем начальные фильтры, чтобы не изменять оригинал
   const [filters, setFilters] = useState({ ...initialFilters });
   const [priceRange, setPriceRange] = useState(initialFilters.priceRange);
@@ -176,13 +186,18 @@ const FilterModal: React.FC<FilterModalProps> = ({
       onRequestClose={onClose}
     >
       <View style={styles.modalOverlay}>
-        <View style={styles.modalContainer}>
+        <View style={[styles.modalContainer, { backgroundColor: colors.card }]}>
           {/* Заголовок модального окна */}
-          <View style={styles.modalHeader}>
+          <View style={[
+            styles.modalHeader, 
+            { 
+              borderBottomColor: colors.border 
+            }
+          ]}>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close-outline" size={24} color="#000" />
+              <Ionicons name="close-outline" size={24} color={colors.icon} />
             </TouchableOpacity>
-            <Text style={styles.modalTitle}>Фильтры</Text>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Фильтры</Text>
             <TouchableOpacity 
               onPress={handleReset}
               disabled={!isResetActive}
@@ -191,7 +206,8 @@ const FilterModal: React.FC<FilterModalProps> = ({
               <Text 
                 style={[
                   styles.resetButtonText, 
-                  !isResetActive && styles.resetButtonTextDisabled
+                  { color: colors.error },
+                  !isResetActive && { color: isDark ? '#666666' : '#999999' }
                 ]}
               >
                 Сбросить
@@ -203,22 +219,26 @@ const FilterModal: React.FC<FilterModalProps> = ({
           <ScrollView style={styles.modalContent}>
             {/* Диапазон цен */}
             <View style={styles.filterSection}>
-              <Text style={styles.filterTitle}>Цена</Text>
+              <Text style={[styles.filterTitle, { color: colors.text }]}>Цена</Text>
               <View style={styles.priceRangeContainer}>
-                <Text style={styles.priceValue}>${Math.round(minPrice)}</Text>
+                <Text style={[styles.priceValue, { color: colors.text }]}>
+                  ${Math.round(minPrice)}
+                </Text>
                 <View style={styles.sliderContainer}>
                   <Slider
                     style={styles.slider}
                     minimumValue={initialFilters.priceRange[0]}
                     maximumValue={initialFilters.priceRange[1]}
                     value={minPrice}
-                    maximumTrackTintColor="#D3D3D3"
-                    minimumTrackTintColor="#000"
-                    thumbTintColor="#000"
+                    maximumTrackTintColor={isDark ? "#555555" : "#D3D3D3"}
+                    minimumTrackTintColor={colors.tint}
+                    thumbTintColor={colors.tint}
                     onValueChange={handleMinPriceChange}
                   />
                 </View>
-                <Text style={styles.priceValue}>${Math.round(initialFilters.priceRange[1])}</Text>
+                <Text style={[styles.priceValue, { color: colors.text }]}>
+                  ${Math.round(initialFilters.priceRange[1])}
+                </Text>
               </View>
               <View style={styles.sliderContainer}>
                 <Slider
@@ -226,14 +246,14 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   minimumValue={initialFilters.priceRange[0]}
                   maximumValue={initialFilters.priceRange[1]}
                   value={maxPrice}
-                  maximumTrackTintColor="#D3D3D3"
-                  minimumTrackTintColor="#000"
-                  thumbTintColor="#000"
+                  maximumTrackTintColor={isDark ? "#555555" : "#D3D3D3"}
+                  minimumTrackTintColor={colors.tint}
+                  thumbTintColor={colors.tint}
                   onValueChange={handleMaxPriceChange}
                 />
               </View>
               <View style={styles.priceLabelsContainer}>
-                <Text style={styles.priceRangeLabel}>
+                <Text style={[styles.priceRangeLabel, { color: colors.placeholder }]}>
                   Выбрано: ${Math.round(minPrice)} - ${Math.round(maxPrice)}
                 </Text>
               </View>
@@ -242,20 +262,28 @@ const FilterModal: React.FC<FilterModalProps> = ({
             {/* Бренды */}
             {filters.brandsOptions && filters.brandsOptions.length > 0 && (
               <View style={styles.filterSection}>
-                <Text style={styles.filterTitle}>Бренды</Text>
+                <Text style={[styles.filterTitle, { color: colors.text }]}>Бренды</Text>
                 <View style={styles.optionsContainer}>
                   {filters.brandsOptions.map((brand) => (
                     <TouchableOpacity 
                       key={brand}
                       style={[
                         styles.optionButton,
-                        filters.brands.includes(brand) && styles.optionButtonSelected
+                        { 
+                          borderColor: isDark ? colors.border : '#ddd',
+                          backgroundColor: isDark ? colors.cardBackground : '#fff' 
+                        },
+                        filters.brands.includes(brand) && [
+                          styles.optionButtonSelected,
+                          { backgroundColor: colors.tint, borderColor: colors.tint }
+                        ]
                       ]}
                       onPress={() => toggleBrand(brand)}
                     >
                       <Text 
                         style={[
                           styles.optionButtonText,
+                          { color: colors.text },
                           filters.brands.includes(brand) && styles.optionButtonTextSelected
                         ]}
                       >
@@ -270,20 +298,28 @@ const FilterModal: React.FC<FilterModalProps> = ({
             {/* Цвета */}
             {filters.colorsOptions && filters.colorsOptions.length > 0 && (
               <View style={styles.filterSection}>
-                <Text style={styles.filterTitle}>Цвета</Text>
+                <Text style={[styles.filterTitle, { color: colors.text }]}>Цвета</Text>
                 <View style={styles.optionsContainer}>
                   {filters.colorsOptions.map((color) => (
                     <TouchableOpacity 
                       key={color}
                       style={[
                         styles.optionButton,
-                        filters.colors.includes(color) && styles.optionButtonSelected
+                        { 
+                          borderColor: isDark ? colors.border : '#ddd',
+                          backgroundColor: isDark ? colors.cardBackground : '#fff' 
+                        },
+                        filters.colors.includes(color) && [
+                          styles.optionButtonSelected,
+                          { backgroundColor: colors.tint, borderColor: colors.tint }
+                        ]
                       ]}
                       onPress={() => toggleColor(color)}
                     >
                       <Text 
                         style={[
                           styles.optionButtonText,
+                          { color: colors.text },
                           filters.colors.includes(color) && styles.optionButtonTextSelected
                         ]}
                       >
@@ -298,20 +334,28 @@ const FilterModal: React.FC<FilterModalProps> = ({
             {/* Размеры */}
             {filters.sizesOptions && filters.sizesOptions.length > 0 && (
               <View style={styles.filterSection}>
-                <Text style={styles.filterTitle}>Размеры</Text>
+                <Text style={[styles.filterTitle, { color: colors.text }]}>Размеры</Text>
                 <View style={styles.optionsContainer}>
                   {filters.sizesOptions.map((size) => (
                     <TouchableOpacity 
                       key={size}
                       style={[
                         styles.sizeButton,
-                        filters.sizes.includes(size) && styles.sizeButtonSelected
+                        { 
+                          borderColor: isDark ? colors.border : '#ddd',
+                          backgroundColor: isDark ? colors.cardBackground : '#fff' 
+                        },
+                        filters.sizes.includes(size) && [
+                          styles.sizeButtonSelected,
+                          { backgroundColor: colors.tint, borderColor: colors.tint }
+                        ]
                       ]}
                       onPress={() => toggleSize(size)}
                     >
                       <Text 
                         style={[
                           styles.sizeButtonText,
+                          { color: colors.text },
                           filters.sizes.includes(size) && styles.sizeButtonTextSelected
                         ]}
                       >
@@ -326,20 +370,28 @@ const FilterModal: React.FC<FilterModalProps> = ({
             {/* Гендер/пол */}
             {filters.gendersOptions && filters.gendersOptions.length > 0 && (
               <View style={styles.filterSection}>
-                <Text style={styles.filterTitle}>Пол</Text>
+                <Text style={[styles.filterTitle, { color: colors.text }]}>Пол</Text>
                 <View style={styles.optionsContainer}>
                   {filters.gendersOptions.map((gender) => (
                     <TouchableOpacity 
                       key={gender}
                       style={[
                         styles.optionButton,
-                        filters.genders.includes(gender) && styles.optionButtonSelected
+                        { 
+                          borderColor: isDark ? colors.border : '#ddd',
+                          backgroundColor: isDark ? colors.cardBackground : '#fff' 
+                        },
+                        filters.genders.includes(gender) && [
+                          styles.optionButtonSelected,
+                          { backgroundColor: colors.tint, borderColor: colors.tint }
+                        ]
                       ]}
                       onPress={() => toggleGender(gender)}
                     >
                       <Text 
                         style={[
                           styles.optionButtonText,
+                          { color: colors.text },
                           filters.genders.includes(gender) && styles.optionButtonTextSelected
                         ]}
                       >
@@ -353,15 +405,24 @@ const FilterModal: React.FC<FilterModalProps> = ({
           </ScrollView>
           
           {/* Нижние кнопки */}
-          <View style={styles.buttonContainer}>
+          <View style={[
+            styles.buttonContainer, 
+            { borderTopColor: colors.border }
+          ]}>
             <TouchableOpacity 
-              style={styles.cancelButton}
+              style={[
+                styles.cancelButton,
+                { borderColor: colors.text }
+              ]}
               onPress={onClose}
             >
-              <Text style={styles.cancelButtonText}>Отменить</Text>
+              <Text style={[styles.cancelButtonText, { color: colors.text }]}>Отменить</Text>
             </TouchableOpacity>
             <TouchableOpacity 
-              style={styles.applyButton}
+              style={[
+                styles.applyButton,
+                { backgroundColor: colors.tint }
+              ]}
               onPress={handleApply}
             >
               <Text style={styles.applyButtonText}>Применить</Text>
@@ -380,7 +441,6 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContainer: {
-    backgroundColor: '#fff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '90%',
@@ -391,7 +451,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
   closeButton: {
     padding: 4,
@@ -408,7 +467,6 @@ const styles = StyleSheet.create({
   },
   resetButtonText: {
     fontSize: 14,
-    color: '#ff3b30',
   },
   resetButtonTextDisabled: {
     color: '#999',
@@ -452,7 +510,6 @@ const styles = StyleSheet.create({
   },
   priceRangeLabel: {
     fontSize: 14,
-    color: '#666',
   },
   optionsContainer: {
     flexDirection: 'row',
@@ -465,11 +522,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#ddd',
-    backgroundColor: '#fff',
   },
   optionButtonSelected: {
-    backgroundColor: '#000',
     borderColor: '#000',
   },
   optionButtonText: {
@@ -487,8 +541,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#ddd',
-    backgroundColor: '#fff',
   },
   sizeButtonSelected: {
     backgroundColor: '#000',
@@ -504,7 +556,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
   },
   cancelButton: {
     flex: 1,
@@ -512,7 +563,6 @@ const styles = StyleSheet.create({
     marginRight: 8,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#000',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -525,7 +575,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     marginLeft: 8,
     borderRadius: 8,
-    backgroundColor: '#000',
     justifyContent: 'center',
     alignItems: 'center',
   },

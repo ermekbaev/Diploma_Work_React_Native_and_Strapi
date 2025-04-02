@@ -1,5 +1,5 @@
 // components/Products/EnhancedProductCard.tsx
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, Dimensions, FlexStyle } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 // Импортируем утилиты
 import { getPriorityGender, Product } from '@/utils/productHelpers';
 import { useAppContext } from '@/context/AppContext';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface ProductCardProps {
   product: Product;
@@ -16,6 +17,8 @@ interface ProductCardProps {
   size?: 'small' | 'medium' | 'large';
   viewType?: 'grid' | 'list';
   isFavorite?: boolean;
+  isDark?: boolean;
+  colors?: any;
 }
 
 interface CardStyle {
@@ -39,14 +42,20 @@ const EnhancedProductCard: React.FC<ProductCardProps> = ({
   onAddToCart,
   size = 'medium',
   viewType = 'grid',
-  isFavorite: externalIsFavorite = false
+  isFavorite: externalIsFavorite = false,
+  isDark: propIsDark,
+  colors: propColors
 }) => {
   const router = useRouter();
   const displayGender = getPriorityGender(product.genders);
   
+  // Получаем тему и цвета из контекста, если они не переданы через пропсы
+  const { theme, colors: themeColors } = useAppTheme();
+  const isDark = propIsDark !== undefined ? propIsDark : theme === 'dark';
+  const colors = propColors || themeColors;
+  
   // Получаем контекст приложения
   const { 
-    favorites, 
     toggleFavorite, 
     isInFavorites 
   } = useAppContext();
@@ -146,7 +155,10 @@ const EnhancedProductCard: React.FC<ProductCardProps> = ({
   if (viewType === 'list') {
     return (
       <TouchableOpacity
-        style={styles.listContainer}
+        style={[
+          styles.listContainer,
+          { backgroundColor: isDark ? colors.cardBackground : '#f8f8f8' }
+        ]}
         onPress={handlePress}
       >
         <View style={styles.listImageContainer}>
@@ -159,29 +171,49 @@ const EnhancedProductCard: React.FC<ProductCardProps> = ({
         </View>
         <View style={styles.listContentContainer}>
           <View style={styles.listTopContent}>
-            <Text style={styles.listTitle} numberOfLines={2}>{product.Name}</Text>
+            <Text 
+              style={[
+                styles.listTitle, 
+                { color: colors.text }
+              ]} 
+              numberOfLines={2}
+            >
+              {product.Name}
+            </Text>
             <View style={styles.metaRow}>
-              <Text style={styles.listMeta}>{product.brandName}</Text>
-              <Text style={styles.listMeta}>{displayGender}</Text>
+              <Text style={[styles.listMeta, { color: colors.placeholder }]}>
+                {product.brandName}
+              </Text>
+              <Text style={[styles.listMeta, { color: colors.placeholder }]}>
+                {displayGender}
+              </Text>
             </View>
-            <Text style={styles.listPrice}>${product.Price.toFixed(2)}</Text>
+            <Text style={[styles.listPrice, { color: colors.text }]}>
+              ${product.Price.toFixed(2)}
+            </Text>
           </View>
           <View style={styles.listActionsContainer}>
             <TouchableOpacity 
-              style={styles.actionButton}
+              style={[
+                styles.actionButton,
+                { backgroundColor: isDark ? 'rgba(50, 50, 50, 0.5)' : 'rgba(255, 255, 255, 0.5)' }
+              ]}
               onPress={handleFavoritePress}
             >
               <Ionicons
                 name={checkIsFavorite() ? "heart" : "heart-outline"} 
                 size={22} 
-                color={checkIsFavorite() ? "#FF3B30" : "#000"} 
+                color={checkIsFavorite() ? "#FF3B30" : colors.icon} 
               />
             </TouchableOpacity>
             <TouchableOpacity 
-              style={styles.actionButton}
+              style={[
+                styles.actionButton,
+                { backgroundColor: isDark ? 'rgba(50, 50, 50, 0.5)' : 'rgba(255, 255, 255, 0.5)' }
+              ]}
               onPress={handleAddToCart}
             >
-              <Ionicons name="cart-outline" size={22} color="#000" />
+              <Ionicons name="cart-outline" size={22} color={colors.icon} />
             </TouchableOpacity>
           </View>
         </View>
@@ -195,7 +227,10 @@ const EnhancedProductCard: React.FC<ProductCardProps> = ({
       style={[styles.productCard, cardStyle.card as any]}
       onPress={handlePress}
     >
-      <View style={styles.productContainer}>
+      <View style={[
+        styles.productContainer,
+        { backgroundColor: isDark ? colors.cardBackground : '#f8f8f8' }
+      ]}>
         <View style={styles.imageWrapper}>
           <Image 
             source={{ uri: product.imageUrl }} 
@@ -204,38 +239,56 @@ const EnhancedProductCard: React.FC<ProductCardProps> = ({
             resizeMode="cover"
           />
           <TouchableOpacity 
-            style={styles.favoriteButton}
+            style={[
+              styles.favoriteButton,
+              { backgroundColor: isDark ? 'rgba(40, 40, 40, 0.8)' : 'rgba(255, 255, 255, 0.8)' }
+            ]}
             onPress={handleFavoritePress}
           >
             <Ionicons
               name={checkIsFavorite() ? "heart" : "heart-outline"} 
               size={20} 
-              color={checkIsFavorite() ? "#FF3B30" : "#000"} 
+              color={checkIsFavorite() ? "#FF3B30" : colors.icon} 
             />
           </TouchableOpacity>
         </View>
         <View style={styles.productInfoContainer}>
-          <Text style={styles.productTitle} numberOfLines={1} ellipsizeMode="tail">
+          <Text 
+            style={[
+              styles.productTitle, 
+              { color: colors.text }
+            ]} 
+            numberOfLines={1} 
+            ellipsizeMode="tail"
+          >
             {product.Name}
           </Text>
           <View style={styles.productMetaContainer}>
-            <Text style={styles.productBrand} numberOfLines={1} ellipsizeMode="tail">
+            <Text 
+              style={[
+                styles.productBrand, 
+                { color: colors.placeholder }
+              ]} 
+              numberOfLines={1} 
+              ellipsizeMode="tail"
+            >
               {product.brandName}
             </Text>
-            <Text style={styles.productCategory} numberOfLines={1} ellipsizeMode="tail">
+            <Text 
+              style={[
+                styles.productCategory, 
+                { color: colors.placeholder }
+              ]} 
+              numberOfLines={1} 
+              ellipsizeMode="tail"
+            >
               {displayGender}
             </Text>
           </View>
           <View style={styles.priceActionContainer}>
-            <Text style={styles.productPrice}>${product.Price.toFixed(2)}</Text>
-            {/* {size !== 'small' && (
-              <TouchableOpacity 
-                style={styles.cartButton}
-                onPress={handleAddToCart}
-              >
-                <Ionicons name="cart-outline" size={18} color="#fff" />
-              </TouchableOpacity>
-            )} */}
+            <Text style={[styles.productPrice, { color: colors.text }]}>
+              ${product.Price.toFixed(2)}
+            </Text>
           </View>
         </View>
       </View>
@@ -245,13 +298,11 @@ const EnhancedProductCard: React.FC<ProductCardProps> = ({
 
 const styles = StyleSheet.create({
   productCard: {
-    // margin: 6,
     marginHorizontal: 6,
-    marginVertical:10,
+    marginVertical: 10,
   },
   productContainer: {
     borderRadius: 12,
-    backgroundColor: "#f8f8f8",
     padding: 5,
     overflow: 'hidden',
   },
@@ -271,7 +322,6 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 10,
@@ -283,7 +333,6 @@ const styles = StyleSheet.create({
   productTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000000',
     marginBottom: 4,
   },
   productMetaContainer: {
@@ -294,12 +343,10 @@ const styles = StyleSheet.create({
   },
   productBrand: {
     fontSize: 14,
-    color: '#666',
     flex: 1,
   },
   productCategory: {
     fontSize: 14,
-    color: '#666',
     textAlign: 'right',
     flex: 1,
   },
@@ -311,13 +358,11 @@ const styles = StyleSheet.create({
   productPrice: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#000000',
   },
   cartButton: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#000',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -325,7 +370,6 @@ const styles = StyleSheet.create({
   // Стили для отображения списком
   listContainer: {
     flexDirection: 'row',
-    backgroundColor: '#f8f8f8',
     borderRadius: 12,
     marginBottom: 12,
     overflow: 'hidden',
@@ -356,7 +400,6 @@ const styles = StyleSheet.create({
   listTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000',
     marginBottom: 4,
   },
   metaRow: {
@@ -365,12 +408,10 @@ const styles = StyleSheet.create({
   },
   listMeta: {
     fontSize: 14,
-    color: '#666',
   },
   listPrice: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#000',
     marginTop: 4,
   },
   listActionsContainer: {
@@ -381,7 +422,6 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
     marginVertical: 4,

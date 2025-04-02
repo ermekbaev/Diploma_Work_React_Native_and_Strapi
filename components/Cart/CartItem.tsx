@@ -1,13 +1,41 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
-const CartItem = ({ item, onRemove, onQuantityChange, onPress } :any) => {
+interface CartItemProps {
+  item: any;
+  onRemove: (id: string) => void;
+  onQuantityChange: (id: string, quantity: number) => void;
+  onPress: (slug: string) => void;
+  isDark?: boolean;
+  colors?: any;
+}
+
+const CartItem: React.FC<CartItemProps> = ({ 
+  item, 
+  onRemove, 
+  onQuantityChange, 
+  onPress,
+  isDark: propIsDark,
+  colors: propColors 
+}) => {
+  // Получаем данные темы из контекста, если они не переданы через пропсы
+  const { theme, colors: themeColors } = useAppTheme();
+  const isDark = propIsDark !== undefined ? propIsDark : theme === 'dark';
+  const colors = propColors || themeColors;
+
   // Вычисляем общую стоимость позиции
   const totalPrice = item.price * item.quantity;
 
   return (
-    <View style={styles.cartItem}>
+    <View style={[
+      styles.cartItem, 
+      { 
+        borderBottomColor: colors.border,
+        backgroundColor: colors.card 
+      }
+    ]}>
       <TouchableOpacity
         onPress={() => onPress(item.productSlug)}
         style={styles.itemImageContainer}
@@ -21,41 +49,52 @@ const CartItem = ({ item, onRemove, onQuantityChange, onPress } :any) => {
       </TouchableOpacity>
       
       <View style={styles.itemDetails}>
-        <Text style={styles.itemName} numberOfLines={1} ellipsizeMode="tail">
+        <Text 
+          style={[styles.itemName, { color: colors.text }]} 
+          numberOfLines={1} 
+          ellipsizeMode="tail"
+        >
           {item.name}
         </Text>
         <View style={styles.itemVariantContainer}>
-          <Text style={styles.itemVariant}>
-            Размер: <Text style={styles.variantValue}>{item.size}</Text>
+          <Text style={[styles.itemVariant, { color: colors.placeholder }]}>
+            Размер: <Text style={[styles.variantValue, { color: colors.text }]}>{item.size}</Text>
           </Text>
-          <Text style={styles.itemVariant}>
-            Цвет: <Text style={styles.variantValue}>{item.color.name}</Text>
+          <Text style={[styles.itemVariant, { color: colors.placeholder }]}>
+            Цвет: <Text style={[styles.variantValue, { color: colors.text }]}>{item.color.name}</Text>
           </Text>
         </View>
         
         <View style={styles.priceContainer}>
-          <Text style={styles.itemPrice}>{item.price.toFixed(2)} ₽</Text>
+          <Text style={[styles.itemPrice, { color: colors.text }]}>
+            {item.price.toFixed(2)} ₽
+          </Text>
           {item.quantity > 1 && (
-            <Text style={styles.totalPrice}>Всего: {totalPrice.toFixed(2)} ₽</Text>
+            <Text style={[styles.totalPrice, { color: colors.placeholder }]}>
+              Всего: {totalPrice.toFixed(2)} ₽
+            </Text>
           )}
         </View>
         
         <View style={styles.itemActions}>
-          <View style={styles.quantityControl}>
+          <View style={[
+            styles.quantityControl, 
+            { backgroundColor: isDark ? colors.cardBackground : '#f5f5f5' }
+          ]}>
             <TouchableOpacity 
               style={styles.quantityButton}
               onPress={() => onQuantityChange(item.id, item.quantity - 1)}
             >
-              <Text style={styles.quantityButtonText}>-</Text>
+              <Text style={[styles.quantityButtonText, { color: colors.text }]}>-</Text>
             </TouchableOpacity>
             
-            <Text style={styles.quantityText}>{item.quantity}</Text>
+            <Text style={[styles.quantityText, { color: colors.text }]}>{item.quantity}</Text>
             
             <TouchableOpacity 
               style={styles.quantityButton}
               onPress={() => onQuantityChange(item.id, item.quantity + 1)}
             >
-              <Text style={styles.quantityButtonText}>+</Text>
+              <Text style={[styles.quantityButtonText, { color: colors.text }]}>+</Text>
             </TouchableOpacity>
           </View>
           
@@ -63,7 +102,7 @@ const CartItem = ({ item, onRemove, onQuantityChange, onPress } :any) => {
             style={styles.removeButton}
             onPress={() => onRemove(item.id)}
           >
-            <Ionicons name="trash-outline" size={20} color="#FF3B30" />
+            <Ionicons name="trash-outline" size={20} color={colors.error} />
           </TouchableOpacity>
         </View>
       </View>
@@ -76,14 +115,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-    backgroundColor: '#ffffff'
   },
   itemImageContainer: {
     width: 80,
     height: 80,
     borderRadius: 10,
-    backgroundColor: '#f5f5f5',
     marginRight: 15,
     marginLeft: 15,
     overflow: 'hidden',
@@ -110,11 +146,9 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   itemVariant: {
-    color: '#777',
     fontSize: 13,
   },
   variantValue: {
-    color: '#333',
     fontWeight: '500',
   },
   priceContainer: {
@@ -126,7 +160,6 @@ const styles = StyleSheet.create({
   },
   totalPrice: {
     fontSize: 13,
-    color: '#666',
     marginTop: 2,
   },
   itemActions: {
@@ -138,7 +171,6 @@ const styles = StyleSheet.create({
   quantityControl: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
     borderRadius: 8,
     paddingHorizontal: 4,
   },

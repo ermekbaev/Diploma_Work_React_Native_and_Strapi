@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface Size {
   id: number;
@@ -12,21 +13,30 @@ interface SizeSelectorProps {
   selectedSize: number | null;
   onSizeSelect: (size: number) => void;
   label?: string;
+  isDark?: boolean;
+  colors?: any;
 }
 
 const SizeSelector: React.FC<SizeSelectorProps> = ({
   sizes,
   selectedSize,
   onSizeSelect,
-  label = 'Select Size'
+  label = 'Select Size',
+  isDark: propIsDark,
+  colors: propColors
 }) => {
+  // Получаем данные темы из контекста, если они не переданы через пропсы
+  const { theme, colors: themeColors } = useAppTheme();
+  const isDark = propIsDark !== undefined ? propIsDark : theme === 'dark';
+  const colors = propColors || themeColors;
+
   if (!sizes || sizes.length === 0) {
     return null;
   }
 
   return (
     <View style={styles.container}>
-      {label && <Text style={styles.sectionTitle}>{label}</Text>}
+      {label && <Text style={[styles.sectionTitle, { color: colors.text }]}>{label}</Text>}
       
       <View style={styles.sizeContainer}>
         {sizes.map((sizeObj) => {
@@ -37,8 +47,24 @@ const SizeSelector: React.FC<SizeSelectorProps> = ({
               key={sizeObj.id}
               style={[
                 styles.sizeOption,
-                selectedSize === sizeObj.Size && styles.selectedSizeOption,
-                !isAvailable && styles.disabledSizeOption
+                { 
+                  borderColor: isDark ? colors.border : '#E0E0E0',
+                  backgroundColor: isDark ? colors.cardBackground : '#FFFFFF'
+                },
+                selectedSize === sizeObj.Size && [
+                  styles.selectedSizeOption,
+                  { 
+                    borderColor: colors.tint,
+                    backgroundColor: colors.tint 
+                  }
+                ],
+                !isAvailable && [
+                  styles.disabledSizeOption,
+                  { 
+                    backgroundColor: isDark ? '#333333' : '#F5F5F5',
+                    borderColor: isDark ? '#444444' : '#E0E0E0' 
+                  }
+                ]
               ]}
               onPress={() => isAvailable && onSizeSelect(sizeObj.Size)}
               disabled={!isAvailable}
@@ -46,8 +72,12 @@ const SizeSelector: React.FC<SizeSelectorProps> = ({
               <Text 
                 style={[
                   styles.sizeText,
+                  { color: colors.text },
                   selectedSize === sizeObj.Size && styles.selectedSizeText,
-                  !isAvailable && styles.disabledSizeText
+                  !isAvailable && [
+                    styles.disabledSizeText,
+                    { color: isDark ? '#666666' : '#999999' }
+                  ]
                 ]}
               >
                 {sizeObj.Size}
@@ -67,7 +97,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000000',
     marginBottom: 10,
   },
   sizeContainer: {
@@ -80,28 +109,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
-    backgroundColor: '#FFFFFF',
     minWidth: 50,
     alignItems: 'center',
   },
   selectedSizeOption: {
-    borderColor: '#000000',
-    backgroundColor: '#000000',
+    borderWidth: 1,
   },
   disabledSizeOption: {
-    backgroundColor: '#F5F5F5',
-    borderColor: '#E0E0E0',
   },
   sizeText: {
     fontSize: 12,
-    color: '#000000',
   },
   selectedSizeText: {
     color: '#FFFFFF',
   },
   disabledSizeText: {
-    color: '#999999',
   },
 });
 

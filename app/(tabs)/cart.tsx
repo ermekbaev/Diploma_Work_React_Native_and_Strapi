@@ -19,10 +19,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import CartItem from '@/components/Cart/CartItem';
 import CartSummary from '@/components/Cart/CartSummary';
 import useCart from '@/hooks/useCart';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 const CartScreen = () => {
   const router = useRouter();
   const navigation = useNavigation();
+  
+  // Получаем данные темы
+  const { theme, colors } = useAppTheme();
+  const isDark = theme === 'dark';
   
   // Получаем данные о корзине из хука
   const {
@@ -101,13 +106,18 @@ const CartScreen = () => {
   // Если корзина загружается
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Корзина</Text>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.header, { 
+          borderBottomColor: colors.border,
+          backgroundColor: colors.card 
+        }]}>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Корзина</Text>
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#000000" />
-          <Text style={styles.loadingText}>Загрузка корзины...</Text>
+          <ActivityIndicator size="large" color={colors.tint} />
+          <Text style={[styles.loadingText, { color: colors.placeholder }]}>
+            Загрузка корзины...
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -116,19 +126,28 @@ const CartScreen = () => {
   // Если корзина пуста
   if (cartItems.length === 0) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Корзина</Text>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.header, { 
+          borderBottomColor: colors.border,
+          backgroundColor: colors.card 
+        }]}>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Корзина</Text>
         </View>
         
         <View style={styles.emptyCartContainer}>
-          <Ionicons name="cart-outline" size={64} color="#CCCCCC" />
-          <Text style={styles.emptyCartText}>Ваша корзина пуста</Text>
-          <Text style={styles.emptyCartSubtext}>
+          <Ionicons 
+            name="cart-outline" 
+            size={64} 
+            color={isDark ? "#666666" : "#CCCCCC"} 
+          />
+          <Text style={[styles.emptyCartText, { color: colors.text }]}>
+            Ваша корзина пуста
+          </Text>
+          <Text style={[styles.emptyCartSubtext, { color: colors.placeholder }]}>
             Добавьте товары в корзину, чтобы оформить заказ
           </Text>
           <TouchableOpacity 
-            style={styles.continueShopping}
+            style={[styles.continueShopping, { backgroundColor: colors.tint }]}
             onPress={handleContinueShopping}
           >
             <Text style={styles.continueShoppingText}>Перейти к покупкам</Text>
@@ -139,25 +158,31 @@ const CartScreen = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar 
+        barStyle={isDark ? "light-content" : "dark-content"} 
+        backgroundColor={colors.background} 
+      />
       
       {/* Заголовок */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Корзина</Text>
+      <View style={[styles.header, { 
+        borderBottomColor: colors.border,
+        backgroundColor: colors.card 
+      }]}>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Корзина</Text>
         {cartItems.length > 0 && (
           <TouchableOpacity onPress={handleClearCart}>
-            <Text style={styles.clearCartText}>Очистить</Text>
+            <Text style={[styles.clearCartText, { color: colors.error }]}>Очистить</Text>
           </TouchableOpacity>
         )}
       </View>
       
       <ScrollView style={styles.scrollView}>
         {error && (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{error}</Text>
+          <View style={[styles.errorContainer, { backgroundColor: isDark ? '#4D1914' : '#FFE8E6' }]}>
+            <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
             <TouchableOpacity 
-              style={styles.retryButton}
+              style={[styles.retryButton, { backgroundColor: colors.error }]}
               onPress={loadCart}
             >
               <Text style={styles.retryButtonText}>Повторить</Text>
@@ -177,6 +202,8 @@ const CartScreen = () => {
                 // Переходим на страницу продукта
                 router.push(`../promo/${slug}`);
               }}
+              isDark={isDark}
+              colors={colors}
             />
           ))}
         </View>
@@ -187,12 +214,23 @@ const CartScreen = () => {
           shipping={cartSummary.shipping}
           total={cartSummary.total}
           itemCount={cartSummary.itemCount}
+          isDark={isDark}
+          colors={colors}
         />
         
         {/* Условия доставки */}
-        <View style={styles.shippingInfoContainer}>
-          <Ionicons name="information-circle-outline" size={20} color="#666" />
-          <Text style={styles.shippingInfoText}>
+        <View style={[
+          styles.shippingInfoContainer, 
+          { 
+            backgroundColor: isDark ? colors.cardBackground : '#F9F9F9' 
+          }
+        ]}>
+          <Ionicons 
+            name="information-circle-outline" 
+            size={20} 
+            color={colors.placeholder} 
+          />
+          <Text style={[styles.shippingInfoText, { color: colors.placeholder }]}>
             Доставка бесплатна при заказе от 5 000 ₽
           </Text>
         </View>
@@ -202,15 +240,23 @@ const CartScreen = () => {
       </ScrollView>
       
       {/* Кнопка оформления заказа */}
-      <View style={styles.checkoutButtonContainer}>
+      <View style={[
+        styles.checkoutButtonContainer,
+        {
+          backgroundColor: colors.card,
+          borderTopColor: colors.border
+        }
+      ]}>
         <View style={styles.checkoutInfo}>
-          <Text style={styles.checkoutItemCount}>
+          <Text style={[styles.checkoutItemCount, { color: colors.placeholder }]}>
             {cartSummary.itemCount} {getPluralForm(cartSummary.itemCount, ['товар', 'товара', 'товаров'])}
           </Text>
-          <Text style={styles.checkoutTotal}>{cartSummary.total.toFixed(2)} ₽</Text>
+          <Text style={[styles.checkoutTotal, { color: colors.text }]}>
+            {cartSummary.total.toFixed(2)} ₽
+          </Text>
         </View>
         <TouchableOpacity 
-          style={styles.checkoutButton}
+          style={[styles.checkoutButton, { backgroundColor: colors.tint }]}
           onPress={handleCheckout}
         >
           <Text style={styles.checkoutButtonText}>Оформить заказ</Text>
@@ -230,7 +276,6 @@ const getPluralForm = (count: number, forms: [string, string, string]): string =
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   scrollView: {
     flex: 1,
@@ -241,14 +286,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
   },
   clearCartText: {
-    color: '#FF3B30',
     fontSize: 14,
     fontWeight: '500',
   },
@@ -259,7 +302,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 10,
-    color: '#666666',
     fontSize: 16,
   },
   emptyCartContainer: {
@@ -271,18 +313,15 @@ const styles = StyleSheet.create({
   emptyCartText: {
     marginTop: 20,
     fontSize: 18,
-    color: '#333333',
     fontWeight: '600',
     marginBottom: 8,
   },
   emptyCartSubtext: {
     fontSize: 14,
-    color: '#666666',
     textAlign: 'center',
     marginBottom: 20,
   },
   continueShopping: {
-    backgroundColor: '#000000',
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 8,
@@ -297,17 +336,14 @@ const styles = StyleSheet.create({
   },
   errorContainer: {
     padding: 15,
-    backgroundColor: '#FFE8E6',
     margin: 15,
     borderRadius: 8,
     alignItems: 'center',
   },
   errorText: {
-    color: '#FF3B30',
     marginBottom: 10,
   },
   retryButton: {
-    backgroundColor: '#FF3B30',
     paddingVertical: 8,
     paddingHorizontal: 20,
     borderRadius: 8,
@@ -320,13 +356,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 15,
-    backgroundColor: '#F9F9F9',
     margin: 15,
     borderRadius: 8,
   },
   shippingInfoText: {
     marginLeft: 10,
-    color: '#666666',
     fontSize: 14,
   },
   bottomSpacer: {
@@ -338,9 +372,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     padding: 15,
-    backgroundColor: 'white',
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
   },
   checkoutInfo: {
     flexDirection: 'row',
@@ -348,7 +380,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   checkoutItemCount: {
-    color: '#666666',
     fontSize: 14,
   },
   checkoutTotal: {
@@ -356,7 +387,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   checkoutButton: {
-    backgroundColor: '#000',
     paddingVertical: 15,
     borderRadius: 10,
     alignItems: 'center',

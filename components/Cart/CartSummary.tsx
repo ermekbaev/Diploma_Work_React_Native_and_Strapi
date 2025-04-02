@@ -1,19 +1,29 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface CartSummaryProps {
   subtotal: number;
   shipping: number;
   total: number;
   itemCount: number;
+  isDark?: boolean;
+  colors?: any;
 }
 
 const CartSummary: React.FC<CartSummaryProps> = ({ 
   subtotal, 
   shipping, 
   total,
-  itemCount 
+  itemCount,
+  isDark: propIsDark,
+  colors: propColors
 }) => {
+  // Получаем данные темы из контекста, если они не переданы через пропсы
+  const { theme, colors: themeColors } = useAppTheme();
+  const isDark = propIsDark !== undefined ? propIsDark : theme === 'dark';
+  const colors = propColors || themeColors;
+
   // Функция для форматирования цены
   const formatPrice = (price: number): string => {
     return price.toFixed(2) + ' ₽';
@@ -27,40 +37,53 @@ const CartSummary: React.FC<CartSummaryProps> = ({
   };
 
   return (
-    <View style={styles.summaryContainer}>
+    <View style={[
+      styles.summaryContainer, 
+      { 
+        backgroundColor: isDark ? colors.cardBackground : '#F9F9F9',
+        borderColor: colors.border
+      }
+    ]}>
       {/* Информация о количестве товаров */}
       <View style={styles.summaryRow}>
-        <Text style={styles.summaryLabel}>
+        <Text style={[styles.summaryLabel, { color: colors.placeholder }]}>
           {itemCount} {getPluralForm(itemCount, ['товар', 'товара', 'товаров'])}
         </Text>
-        <Text style={styles.summaryValue}>{formatPrice(subtotal)}</Text>
+        <Text style={[styles.summaryValue, { color: colors.text }]}>
+          {formatPrice(subtotal)}
+        </Text>
       </View>
       
       {/* Информация о доставке */}
       <View style={styles.summaryRow}>
         <View style={styles.shippingLabelContainer}>
-          <Text style={styles.summaryLabel}>Доставка</Text>
+          <Text style={[styles.summaryLabel, { color: colors.placeholder }]}>Доставка</Text>
           {shipping === 0 && (
-            <Text style={styles.freeShippingLabel}>Бесплатно</Text>
+            <Text style={[
+              styles.freeShippingLabel, 
+              { 
+                color: isDark ? '#2E7D32' : '#4CAF50',
+                backgroundColor: isDark ? '#1B3B1F' : '#E8F5E9' 
+              }
+            ]}>
+              Бесплатно
+            </Text>
           )}
         </View>
-        <Text style={styles.summaryValue}>
+        <Text style={[styles.summaryValue, { color: colors.text }]}>
           {shipping === 0 ? 'Бесплатно' : formatPrice(shipping)}
         </Text>
       </View>
       
-      {/* Скидки (если они есть) */}
-      {/* <View style={styles.summaryRow}>
-        <Text style={styles.summaryLabel}>Скидка</Text>
-        <Text style={[styles.summaryValue, styles.discountValue]}>
-          - {formatPrice(0)}
-        </Text>
-      </View> */}
-      
       {/* Итого */}
-      <View style={styles.totalRow}>
-        <Text style={styles.totalLabel}>Итого</Text>
-        <Text style={styles.totalValue}>{formatPrice(total)}</Text>
+      <View style={[
+        styles.totalRow, 
+        { borderTopColor: colors.border }
+      ]}>
+        <Text style={[styles.totalLabel, { color: colors.text }]}>Итого</Text>
+        <Text style={[styles.totalValue, { color: colors.text }]}>
+          {formatPrice(total)}
+        </Text>
       </View>
     </View>
   );
@@ -69,10 +92,10 @@ const CartSummary: React.FC<CartSummaryProps> = ({
 const styles = StyleSheet.create({
   summaryContainer: {
     padding: 15,
-    backgroundColor: '#F9F9F9',
     marginHorizontal: 15,
     marginTop: 15,
     borderRadius: 12,
+    borderWidth: 0.5,
   },
   summaryRow: {
     flexDirection: 'row',
@@ -86,20 +109,16 @@ const styles = StyleSheet.create({
   freeShippingLabel: {
     marginLeft: 8,
     fontSize: 12,
-    color: '#4CAF50',
-    backgroundColor: '#E8F5E9',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
   },
   summaryLabel: {
-    color: '#666',
     fontSize: 14,
   },
   summaryValue: {
     fontWeight: '500',
     fontSize: 14,
-    color: '#333',
   },
   discountValue: {
     color: '#4CAF50',
@@ -110,17 +129,14 @@ const styles = StyleSheet.create({
     marginTop: 15,
     paddingTop: 15,
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
   },
   totalLabel: {
     fontWeight: '600',
     fontSize: 16,
-    color: '#333',
   },
   totalValue: {
     fontWeight: '700',
     fontSize: 18,
-    color: '#000',
   },
 });
 

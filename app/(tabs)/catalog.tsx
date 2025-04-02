@@ -26,10 +26,17 @@ import EnhancedCategoryList from '@/components/Catalog/EnhancedCategoryList';
 import ActiveFilters from '@/components/Catalog/ActiveFilters';
 import EnhancedProductCard from '@/components/Products/EnhancedProductCard';
 
+// Импорт хука темы
+import { useAppTheme } from '@/hooks/useAppTheme';
+
 const { width } = Dimensions.get('window');
 
 export default function CatalogScreen() {
   const router = useRouter();
+  
+  // Получаем текущую тему и цвета
+  const { theme, colors } = useAppTheme();
+  const isDark = theme === 'dark';
 
   // Состояния для данных
   const [products, setProducts] = useState<Product[]>([]);
@@ -186,7 +193,7 @@ export default function CatalogScreen() {
     setCategories(updatedCategories);
   };
 
-// Применение фильтров и сортировки
+  // Применение фильтров и сортировки
   const applyFiltersAndSort = () => {
     // Сначала фильтрация по категории
     let result = [...products];
@@ -360,6 +367,8 @@ export default function CatalogScreen() {
       size={selectedView === 'grid' ? 'medium' : 'large'}
       viewType={selectedView}
       isFavorite={favoriteProducts.includes(item.slug)}
+      isDark={isDark}
+      colors={colors}
     />
   );
 
@@ -374,18 +383,21 @@ export default function CatalogScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={colors.background} />
       
       {/* Заголовок */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Каталог</Text>
+      <View style={[styles.header, { 
+        backgroundColor: colors.card,
+        borderBottomColor: colors.border 
+      }]}>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Каталог</Text>
         <View style={styles.headerActions}>
           <TouchableOpacity style={styles.actionButton} onPress={() => setShowSortModal(true)}>
-            <Ionicons name="options-outline" size={22} color="#000" />
+            <Ionicons name="options-outline" size={22} color={colors.icon} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionButton} onPress={toggleView}>
-            <Ionicons name={selectedView === 'grid' ? 'list' : 'grid'} size={22} color="#000" />
+            <Ionicons name={selectedView === 'grid' ? 'list' : 'grid'} size={22} color={colors.icon} />
           </TouchableOpacity>
         </View>
       </View>
@@ -397,16 +409,18 @@ export default function CatalogScreen() {
         onRemoveFilter={handleRemoveFilter}
         onResetFilters={handleResetFilters}
         onOpenFilterModal={() => setShowFilterModal(true)}
+        isDark={isDark}
+        colors={colors}
       />
       
       {/* Категории */}
-      <View style={styles.categoryHeader}>
-        <Text style={styles.categoryTitle}>Категории</Text>
+      <View style={[styles.categoryHeader, { backgroundColor: colors.background }]}>
+        <Text style={[styles.categoryTitle, { color: colors.text }]}>Категории</Text>
         <TouchableOpacity onPress={toggleCategoryLayout}>
           <Ionicons 
             name={categoryLayout === 'horizontal' ? 'grid' : 'menu'} 
             size={22} 
-            color="#000" 
+            color={colors.icon} 
           />
         </TouchableOpacity>
       </View>
@@ -417,11 +431,12 @@ export default function CatalogScreen() {
         onSelectCategory={handleCategorySelect}
         layout={categoryLayout}
         showImages={categoryLayout === 'grid'}
+        isDark={isDark}
       />
       
       {/* Счетчик результатов */}
       <View style={styles.resultsCountContainer}>
-        <Text style={styles.resultsCountText}>
+        <Text style={[styles.resultsCountText, { color: colors.placeholder }]}>
           Найдено: {filteredProducts.length} товаров
         </Text>
       </View>
@@ -429,13 +444,13 @@ export default function CatalogScreen() {
       {/* Список продуктов */}
       {loading ? (
         <View style={styles.loaderContainer}>
-          <ActivityIndicator size="large" color="#000" />
+          <ActivityIndicator size="large" color={colors.tint} />
         </View>
       ) : error ? (
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
+          <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
           <TouchableOpacity 
-            style={styles.retryButton}
+            style={[styles.retryButton, { backgroundColor: colors.tint }]}
             onPress={() => loadProductsAndCategories()}
           >
             <Text style={styles.retryButtonText}>Повторить</Text>
@@ -443,11 +458,13 @@ export default function CatalogScreen() {
         </View>
       ) : filteredProducts.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Ionicons name="search-outline" size={64} color="#ccc" />
-          <Text style={styles.emptyText}>Товары не найдены</Text>
-          <Text style={styles.emptySubtext}>Попробуйте изменить параметры фильтрации</Text>
+          <Ionicons name="search-outline" size={64} color={colors.placeholder} />
+          <Text style={[styles.emptyText, { color: colors.text }]}>Товары не найдены</Text>
+          <Text style={[styles.emptySubtext, { color: colors.placeholder }]}>
+            Попробуйте изменить параметры фильтрации
+          </Text>
           <TouchableOpacity 
-            style={styles.resetButton}
+            style={[styles.resetButton, { backgroundColor: colors.tint }]}
             onPress={handleResetFilters}
           >
             <Text style={styles.resetButtonText}>Сбросить фильтры</Text>
@@ -471,8 +488,8 @@ export default function CatalogScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={() => loadProductsAndCategories(true)}
-              colors={["#000"]}
-              tintColor="#000"
+              colors={[colors.tint]}
+              tintColor={colors.tint}
             />
           }
         />
@@ -484,6 +501,8 @@ export default function CatalogScreen() {
         initialFilters={filters}
         onApply={applyFilters}
         onClose={() => setShowFilterModal(false)}
+        isDark={isDark}
+        colors={colors}
       />
       
       {/* Модальное окно сортировки */}
@@ -492,6 +511,8 @@ export default function CatalogScreen() {
         selectedOption={sortOption}
         onSelect={applySorting}
         onClose={() => setShowSortModal(false)}
+        isDark={isDark}
+        colors={colors}
       />
     </SafeAreaView>
   );
@@ -500,7 +521,6 @@ export default function CatalogScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   header: {
     flexDirection: 'row',
@@ -509,7 +529,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
   headerTitle: {
     fontSize: 18,
@@ -540,7 +559,6 @@ const styles = StyleSheet.create({
   },
   resultsCountText: {
     fontSize: 12,
-    color: '#666',
   },
   productList: {
     padding: 8,
@@ -564,12 +582,10 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 16,
-    color: '#ff3b30',
     textAlign: 'center',
     marginBottom: 16,
   },
   retryButton: {
-    backgroundColor: '#000',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
@@ -592,12 +608,10 @@ const styles = StyleSheet.create({
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#666',
     textAlign: 'center',
     marginBottom: 16,
   },
   resetButton: {
-    backgroundColor: '#000',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,

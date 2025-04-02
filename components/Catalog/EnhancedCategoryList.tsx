@@ -9,6 +9,7 @@ import {
   Dimensions
 } from 'react-native';
 import { Category } from '@/utils/productHelpers';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface CategoryListProps {
   categories: Category[];
@@ -16,6 +17,8 @@ interface CategoryListProps {
   onSelectCategory: (categoryName: string) => void;
   layout?: 'horizontal' | 'grid';
   showImages?: boolean;
+  isDark?: boolean;
+  colors?: any;
 }
 
 // Временные изображения для категорий (в реальном приложении должны приходить с сервера)
@@ -43,14 +46,36 @@ const EnhancedCategoryList: React.FC<CategoryListProps> = ({
   selectedCategory,
   onSelectCategory,
   layout = 'horizontal',
-  showImages = false
+  showImages = false,
+  isDark: propIsDark,
+  colors: propColors
 }) => {
+  // Получаем данные темы из контекста, если они не переданы через пропсы
+  const { theme, colors: themeColors } = useAppTheme();
+  const isDark = propIsDark !== undefined ? propIsDark : theme === 'dark';
+  const colors = propColors || themeColors;
+
+  // Определяем цвета в зависимости от темы
+  const categoryColors = {
+    background: isDark ? colors.cardBackground : '#F5F5F5',
+    text: isDark ? colors.placeholder : '#555555',
+    selectedBackground: isDark ? colors.tint : '#000000',
+    selectedText: '#FFFFFF',
+    gridBackground: isDark ? colors.card : '#F5F5F5',
+    gridSelected: isDark ? colors.tint : '#E0E0E0',
+    gridBorder: isDark ? colors.tint : '#000000',
+    gridText: isDark ? colors.placeholder : '#555555',
+  };
+
   // Рендеринг элемента категории в горизонтальном списке
   const renderHorizontalItem = ({ item }: { item: Category }) => (
     <TouchableOpacity
       style={[
         styles.horizontalItem,
-        selectedCategory === item.name && styles.selectedHorizontalItem
+        { backgroundColor: categoryColors.background },
+        selectedCategory === item.name && {
+          backgroundColor: categoryColors.selectedBackground
+        }
       ]}
       onPress={() => onSelectCategory(item.name)}
     >
@@ -63,7 +88,10 @@ const EnhancedCategoryList: React.FC<CategoryListProps> = ({
       <Text 
         style={[
           styles.horizontalItemText,
-          selectedCategory === item.name && styles.selectedItemText
+          { color: categoryColors.text },
+          selectedCategory === item.name && {
+            color: categoryColors.selectedText
+          }
         ]}
       >
         {item.name}
@@ -76,7 +104,12 @@ const EnhancedCategoryList: React.FC<CategoryListProps> = ({
     <TouchableOpacity
       style={[
         styles.gridItem,
-        selectedCategory === item.name && styles.selectedGridItem
+        { backgroundColor: categoryColors.gridBackground },
+        selectedCategory === item.name && {
+          backgroundColor: categoryColors.gridSelected,
+          borderWidth: 1,
+          borderColor: categoryColors.gridBorder
+        }
       ]}
       onPress={() => onSelectCategory(item.name)}
     >
@@ -87,7 +120,11 @@ const EnhancedCategoryList: React.FC<CategoryListProps> = ({
       <Text 
         style={[
           styles.gridItemText,
-          selectedCategory === item.name && styles.selectedItemText
+          { color: categoryColors.gridText },
+          selectedCategory === item.name && {
+            color: isDark ? '#FFFFFF' : '#000000',
+            fontWeight: '600'
+          }
         ]}
       >
         {item.name}
@@ -140,13 +177,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#F5F5F5',
     marginRight: 10,
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  selectedHorizontalItem: {
-    backgroundColor: '#000000',
   },
   horizontalItemImage: {
     width: 20,
@@ -157,7 +190,6 @@ const styles = StyleSheet.create({
   horizontalItemText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#555555',
   },
   
   // Стили для сетки
@@ -173,12 +205,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 8,
     borderRadius: 12,
-    backgroundColor: '#F5F5F5',
-  },
-  selectedGridItem: {
-    backgroundColor: '#E0E0E0',
-    borderWidth: 1,
-    borderColor: '#000000',
   },
   gridItemImage: {
     width: ITEM_WIDTH - 16,
@@ -190,13 +216,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     textAlign: 'center',
-    color: '#555555',
-  },
-  
-  // Общие стили
-  selectedItemText: {
-    color: '#ffffff',
-    fontWeight: '600',
   },
 });
 

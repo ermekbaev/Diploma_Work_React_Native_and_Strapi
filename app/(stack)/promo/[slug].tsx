@@ -13,6 +13,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useEffect, useState } from "react";
 import { fetchModelsByProductId, fetchProductById } from "@/services/api";
 
+// Импорт хука темы
+import { useAppTheme } from "@/hooks/useAppTheme";
+
 // Components
 import ProductImages from "@/components/Products/ProductImages";
 import ColorSelector from "@/components/Products/ColorSelector";
@@ -69,6 +72,10 @@ export default function PromoDetailScreen() {
   const { slug } = useLocalSearchParams();
   const router = useRouter();
   const navigation = useNavigation();
+
+  // Получаем данные темы
+  const { theme, colors } = useAppTheme();
+  const isDark = theme === 'dark';
 
   // Получаем функции из контекста
   const { addToFavorites, removeFromFavorites, isInFavorites } = useAppContext();
@@ -136,7 +143,7 @@ export default function PromoDetailScreen() {
         setSelectedSize(updatedProduct.sizes[0].Size);
       }
 
-            // Проверяем, есть ли товар в избранном
+      // Проверяем, есть ли товар в избранном
       if (defaultColorId !== null) {
         setFavorite(isInFavorites(productItem.slug, defaultColorId));
       }
@@ -332,7 +339,7 @@ export default function PromoDetailScreen() {
       checkCartStatus(product.slug, colorId, selectedSize);
     }
 
-       // Обновляем статус избранного в зависимости от выбранного цвета
+    // Обновляем статус избранного в зависимости от выбранного цвета
     if (product) {
       setFavorite(isInFavorites(product.slug, colorId));
     }
@@ -397,23 +404,34 @@ export default function PromoDetailScreen() {
   // Show during loading
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#000" />
-        <Text style={styles.loadingText}>Loading product...</Text>
-      </View>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.tint} />
+          <Text style={[styles.loadingText, { color: colors.text }]}>
+            Loading product...
+          </Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
   // Show on error
   if (error || !product) {
     return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>{error || 'Product not found'}</Text>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="chevron-back" size={24} color="black" />
-          <Text style={{ color: "black", marginLeft: 5 }}>Back</Text>
-        </TouchableOpacity>
-      </View>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={styles.errorContainer}>
+          <Text style={[styles.errorText, { color: colors.error }]}>
+            {error || 'Product not found'}
+          </Text>
+          <TouchableOpacity 
+            onPress={() => router.back()} 
+            style={[styles.backButton, { backgroundColor: colors.cardBackground }]}
+          >
+            <Ionicons name="chevron-back" size={24} color={colors.icon} />
+            <Text style={{ color: colors.text, marginLeft: 5 }}>Back</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -424,23 +442,28 @@ export default function PromoDetailScreen() {
   const bgColor = getProductBackgroundColor(product, selectedColorObj);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Top panel */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.card }]}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={24} color="black" />
+          <Ionicons name="chevron-back" size={24} color={colors.icon} />
         </TouchableOpacity>
         <TouchableOpacity onPress={() => router.push('/(tabs)/cart')}>
-          <Ionicons name="cart-outline" size={24} color="black" />
+          <Ionicons name="cart-outline" size={24} color={colors.icon} />
         </TouchableOpacity>
       </View>
       
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        style={{ backgroundColor: colors.background }}
+      >
         {/* Product header */}
         <View style={styles.productHeader}>
           <View>
-            <Text style={styles.productTitle}>{product.Name}</Text>
-            <Text style={styles.productCategory}>
+            <Text style={[styles.productTitle, { color: colors.text }]}>
+              {product.Name}
+            </Text>
+            <Text style={[styles.productCategory, { color: colors.placeholder }]}>
               {product.category?.Name || product.genders?.[0]?.Gender_Name || "Footwear"}
             </Text>
           </View>
@@ -448,29 +471,35 @@ export default function PromoDetailScreen() {
             <Ionicons 
               name={favorite ? "heart" : "heart-outline"} 
               size={24} 
-              color={favorite ? "#FF3B30" : "black"} 
+              color={favorite ? "#FF3B30" : colors.icon} 
             />
           </TouchableOpacity>
         </View>
         
-        {/* Product images - передаем цвет фона */}
+        {/* Product images */}
         <ProductImages 
-          images={productImages} 
+          images={productImages}
+          isDark={isDark}
+          colors={colors}
         />
         
         {/* Color selection */}
         {product.colors && product.colors.length > 0 && (
           <View style={styles.sectionContainer}>
             <ColorSelector
-              colors={product.colors}
+              color={product.colors}
               selectedColorId={selectedColor}
               onColorSelect={handleColorSelect}
+              isDark={isDark}
+              colors={colors}
             />
           </View>
         )}
         
         {/* Product price */}
-        <Text style={styles.price}>{formatPrice(product.Price)}</Text>
+        <Text style={[styles.price, { color: colors.text }]}>
+          {formatPrice(product.Price)}
+        </Text>
         
         {/* Size selection */}
         {product.sizes && product.sizes.length > 0 && (
@@ -479,36 +508,38 @@ export default function PromoDetailScreen() {
               sizes={product.sizes}
               selectedSize={selectedSize}
               onSizeSelect={handleSizeSelect}
+              isDark={isDark}
+              colors={colors}
             />
           </View>
         )}
         
         {/* Product description */}
         <View style={styles.descriptionContainer}>
-          <Text style={styles.sectionTitle}>Description</Text>
-          <Text style={styles.descriptionText}>{product.Description}</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Description</Text>
+          <Text style={[styles.descriptionText, { color: colors.placeholder }]}>
+            {product.Description}
+          </Text>
         </View>
-        
-        {/* Brand information */}
-        {/* {product.brand && (
-          <View style={styles.brandContainer}>
-            <Text style={styles.sectionTitle}>Brand</Text>
-            <Text style={styles.brandText}>{product.brand.Brand_Name}</Text>
-          </View>
-        )} */}
         
         <View style={styles.bottomSpacer} />
       </ScrollView>
 
       {/* Add to cart button */}
-      <View style={styles.bottomButtonContainer}>
+      <View style={[
+        styles.bottomButtonContainer,
+        { 
+          backgroundColor: colors.card, 
+          borderTopColor: colors.border
+        }
+      ]}>
         {itemInCart ? (
           <View style={styles.cartStatusContainer}>
-            <Text style={styles.inCartText}>
+            <Text style={[styles.inCartText, { color: colors.placeholder }]}>
               Already in cart ({itemQuantity})
             </Text>
             <TouchableOpacity 
-              style={styles.viewCartButton}
+              style={[styles.viewCartButton, { backgroundColor: colors.tint }]}
               onPress={() => router.push('/(tabs)/cart')}
             >
               <Text style={styles.viewCartButtonText}>View Cart</Text>
@@ -518,7 +549,11 @@ export default function PromoDetailScreen() {
           <TouchableOpacity 
             style={[
               styles.addToCartButton,
-              (!selectedSize || !selectedColor) && styles.disabledButton
+              { backgroundColor: colors.tint },
+              (!selectedSize || !selectedColor) && [
+                styles.disabledButton,
+                { backgroundColor: isDark ? '#444444' : '#999999' }
+              ]
             ]}
             disabled={!selectedSize || !selectedColor}
             onPress={handleAddToCart}
@@ -534,7 +569,6 @@ export default function PromoDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
     margin: 0,
   },
   header: {
@@ -558,11 +592,9 @@ const styles = StyleSheet.create({
   productTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#000000",
   },
   productCategory: {
     fontSize: 14,
-    color: "#666666",
     marginTop: 2,
   },
   sectionContainer: {
@@ -572,7 +604,6 @@ const styles = StyleSheet.create({
   price: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#000000",
     marginTop: 15,
     marginBottom: 15,
     paddingHorizontal: 16,
@@ -581,7 +612,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#000000",
     marginBottom: 10,
     marginLeft: 15,
     paddingHorizontal: 16,
@@ -591,7 +621,6 @@ const styles = StyleSheet.create({
   },
   descriptionText: {
     fontSize: 14,
-    color: "#333333",
     lineHeight: 20,
     marginHorizontal: 15,
     paddingHorizontal: 16,
@@ -603,7 +632,6 @@ const styles = StyleSheet.create({
   },
   brandText: {
     fontSize: 14,
-    color: "#333333",
   },
   bottomSpacer: {
     height: 80,
@@ -613,20 +641,17 @@ const styles = StyleSheet.create({
     bottom: 25,
     left: 0,
     right: 0,
-    backgroundColor: "#FFFFFF",
     paddingHorizontal: 16,
     paddingVertical: 15,
     borderTopWidth: 1,
-    borderTopColor: "#F0F0F0",
   },
   addToCartButton: {
-    backgroundColor: "#000000",
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: "center",
   },
   disabledButton: {
-    backgroundColor: "#999999",
+    opacity: 0.7,
   },
   addToCartButtonText: {
     fontSize: 14,
@@ -637,23 +662,19 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
   },
   loadingText: {
     fontSize: 16,
-    color: "#000000",
     marginTop: 10,
   },
   errorContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
     padding: 20,
   },
   errorText: {
     fontSize: 18,
-    color: "#FF3B30",
     textAlign: "center",
     marginBottom: 20,
   },
@@ -661,7 +682,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     padding: 10,
-    backgroundColor: "#F0F0F0",
     borderRadius: 10,
   },
   cartStatusContainer: {
@@ -671,10 +691,8 @@ const styles = StyleSheet.create({
   },
   inCartText: {
     fontSize: 14,
-    color: "#666666",
   },
   viewCartButton: {
-    backgroundColor: "#000000",
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 12,

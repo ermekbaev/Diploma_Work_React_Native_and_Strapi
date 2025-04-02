@@ -8,6 +8,7 @@ import {
   FlatList
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface SortOption {
   id: string;
@@ -20,6 +21,8 @@ interface SortModalProps {
   selectedOption: string;
   onSelect: (option: string) => void;
   onClose: () => void;
+  isDark?: boolean;
+  colors?: any;
 }
 
 const sortOptions: SortOption[] = [
@@ -34,15 +37,27 @@ const SortModal: React.FC<SortModalProps> = ({
   visible,
   selectedOption,
   onSelect,
-  onClose
+  onClose,
+  isDark: propIsDark,
+  colors: propColors
 }) => {
+  // Получаем данные темы из контекста, если они не переданы через пропсы
+  const { theme, colors: themeColors } = useAppTheme();
+  const isDark = propIsDark !== undefined ? propIsDark : theme === 'dark';
+  const colors = propColors || themeColors;
+
   // Рендеринг элемента списка сортировки
   const renderSortOption = ({ item }: { item: SortOption }) => {
     const isSelected = selectedOption === item.id;
     
     return (
       <TouchableOpacity
-        style={styles.optionItem}
+        style={[
+          styles.optionItem, 
+          { 
+            borderBottomColor: colors.border 
+          }
+        ]}
         onPress={() => {
           onSelect(item.id);
         }}
@@ -60,14 +75,18 @@ const SortModal: React.FC<SortModalProps> = ({
                       : 'text'
               }
               size={18}
-              color={isSelected ? '#000' : '#666'}
+              color={isSelected ? colors.tint : colors.placeholder}
               style={styles.optionIcon}
             />
           )}
           <Text
             style={[
               styles.optionText,
-              isSelected && styles.selectedOptionText
+              { color: colors.text },
+              isSelected && [
+                styles.selectedOptionText,
+                { color: colors.tint }
+              ]
             ]}
           >
             {item.title}
@@ -75,7 +94,7 @@ const SortModal: React.FC<SortModalProps> = ({
         </View>
         
         {isSelected && (
-          <Ionicons name="checkmark" size={20} color="#000" />
+          <Ionicons name="checkmark" size={20} color={colors.tint} />
         )}
       </TouchableOpacity>
     );
@@ -89,12 +108,21 @@ const SortModal: React.FC<SortModalProps> = ({
       onRequestClose={onClose}
     >
       <View style={styles.modalOverlay}>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close-outline" size={24} color="#000" />
+        <View style={[
+          styles.modalContainer, 
+          { backgroundColor: colors.card }
+        ]}>
+          <View style={[
+            styles.modalHeader, 
+            { borderBottomColor: colors.border }
+          ]}>
+            <TouchableOpacity 
+              onPress={onClose} 
+              style={styles.closeButton}
+            >
+              <Ionicons name="close-outline" size={24} color={colors.icon} />
             </TouchableOpacity>
-            <Text style={styles.modalTitle}>Сортировка</Text>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Сортировка</Text>
             <View style={styles.placeholder} />
           </View>
           
@@ -105,9 +133,15 @@ const SortModal: React.FC<SortModalProps> = ({
             contentContainerStyle={styles.listContainer}
           />
           
-          <View style={styles.buttonContainer}>
+          <View style={[
+            styles.buttonContainer, 
+            { borderTopColor: colors.border }
+          ]}>
             <TouchableOpacity 
-              style={styles.applyButton}
+              style={[
+                styles.applyButton,
+                { backgroundColor: colors.tint }
+              ]}
               onPress={onClose}
             >
               <Text style={styles.applyButtonText}>Готово</Text>
@@ -126,7 +160,6 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContainer: {
-    backgroundColor: '#fff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '50%',
@@ -137,7 +170,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
   closeButton: {
     padding: 4,
@@ -158,7 +190,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
   optionContent: {
     flexDirection: 'row',
@@ -169,21 +200,17 @@ const styles = StyleSheet.create({
   },
   optionText: {
     fontSize: 16,
-    color: '#333',
   },
   selectedOptionText: {
     fontWeight: '600',
-    color: '#000',
   },
   buttonContainer: {
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
   },
   applyButton: {
     paddingVertical: 12,
     borderRadius: 8,
-    backgroundColor: '#000',
     justifyContent: 'center',
     alignItems: 'center',
   },

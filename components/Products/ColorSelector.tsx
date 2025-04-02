@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { getColorBackground } from '@/utils/productHelpers';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface Color {
   id: number;
@@ -9,35 +10,53 @@ interface Color {
 }
 
 interface ColorSelectorProps {
-  colors: Color[];
+  color: Color[];
   selectedColorId: number | null;
   onColorSelect: (colorId: number) => void;
   label?: string;
+  isDark?: boolean;
+  colors?: any;
 }
 
 const ColorSelector: React.FC<ColorSelectorProps> = ({
-  colors,
+  color: colorOptions,
   selectedColorId,
   onColorSelect,
-  label = 'Select Color'
+  label = 'Select Color',
+  isDark: propIsDark,
+  colors: propColors
 }) => {
-  if (!colors || colors.length === 0) {
+  // Получаем данные темы из контекста, если они не переданы через пропсы
+  const { theme, colors: themeColors } = useAppTheme();
+  const isDark = propIsDark !== undefined ? propIsDark : theme === 'dark';
+  const colors = propColors || themeColors;
+
+  if (!colorOptions || colorOptions.length === 0) {
     return null;
   }
 
   return (
     <View style={styles.container}>
-      {label && <Text style={styles.sectionTitle}>{label}</Text>}
+      {label && (
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>
+          {label}
+        </Text>
+      )}
       
       <View style={styles.colorSelectionContainer}>
-        {colors.map((color) => (
+        {colorOptions.map((color) => (
           <TouchableOpacity
             key={color.id}
             style={[
               styles.colorOption,
               { backgroundColor: getColorBackground(color) },
-              selectedColorId === color.id && styles.selectedColorOption,
-              color.Name === 'White' || color.Name === 'Белый' ? { borderWidth: 1, borderColor: '#E0E0E0' } : {}
+              { borderColor: isDark ? colors.border : '#E0E0E0' },
+              selectedColorId === color.id && [
+                styles.selectedColorOption,
+                { borderColor: colors.tint }
+              ],
+              (color.Name === 'White' || color.Name === 'Белый') && 
+                { borderWidth: 1, borderColor: isDark ? colors.border : '#E0E0E0' }
             ]}
             onPress={() => onColorSelect(color.id)}
           />
@@ -54,7 +73,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000000',
     marginBottom: 10,
   },
   colorSelectionContainer: {
@@ -67,11 +85,9 @@ const styles = StyleSheet.create({
     height: 30,
     borderRadius: 15,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
   },
   selectedColorOption: {
     borderWidth: 2,
-    borderColor: '#000000',
   },
 });
 
