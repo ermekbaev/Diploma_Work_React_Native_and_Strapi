@@ -19,6 +19,7 @@ import SectionHeader from '@/components/ui/SectionHeader';
 // Импорт утилит
 import { formatApiProduct } from '@/utils/apiHelpers';
 import { Product } from '@/utils/productHelpers';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2; // 2 карточки в ширину с учетом padding
@@ -27,6 +28,10 @@ export default function BrandProductsScreen() {
   const router = useRouter();
   const { slug } = useLocalSearchParams();
   const brandSlug = Array.isArray(slug) ? slug[0] : slug;
+  
+  // Получаем данные темы
+  const { theme, colors } = useAppTheme();
+  const isDark = theme === 'dark';
 
   // Состояние данных
   const [products, setProducts] = useState<Product[]>([]);
@@ -86,6 +91,8 @@ export default function BrandProductsScreen() {
             product={item}
             size="medium"
             onPress={(slug) => router.push(`../promo/${slug}`)}
+            isDark={isDark}
+            colors={colors}
           />
         )}
         numColumns={2}
@@ -97,25 +104,27 @@ export default function BrandProductsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={colors.background} />
       
       {/* Заголовок страницы */}
       <SectionHeader
         title={brandName}
         showBackButton
         onBackPress={() => router.back()}
+        isDark={isDark}
+        colors={colors}
       />
       
       {/* Содержимое страницы */}
       {loading ? (
-        <ActivityIndicator size="large" color="#000000" style={styles.loader} />
+        <ActivityIndicator size="large" color={colors.tint} style={styles.loader} />
       ) : error ? (
-        <Text style={styles.errorText}>{error}</Text>
+        <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
       ) : products.length > 0 ? (
         renderProductGrid()
       ) : (
-        <Text style={styles.emptyText}>Товары не найдены</Text>
+        <Text style={[styles.emptyText, { color: colors.placeholder }]}>Товары не найдены</Text>
       )}
     </SafeAreaView>
   );
@@ -124,7 +133,6 @@ export default function BrandProductsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
   loader: {
     flex: 1,
@@ -135,14 +143,12 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'center',
     marginTop: 20,
-    color: '#FF6B6B',
     fontSize: 16,
   },
   emptyText: {
     flex: 1,
     textAlign: 'center',
     marginTop: 20,
-    color: '#666666',
     fontSize: 16,
   },
   productGrid: {

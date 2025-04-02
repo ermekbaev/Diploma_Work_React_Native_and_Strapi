@@ -5,17 +5,27 @@ import { useRouter } from 'expo-router';
 import ProductCard from '@/components/Products/ProductCard';
 import { BrandWithProducts } from '@/utils/productHelpers';
 import { getProductBackgroundColor } from '@/utils/colorHalpers';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface BrandSectionProps {
   brand: BrandWithProducts;
   maxProducts?: number;
+  colors?: any;
+  isDark?: boolean;
 }
 
 const BrandSection: React.FC<BrandSectionProps> = ({ 
   brand, 
-  maxProducts = 5 
+  maxProducts = 5,
+  colors: propColors,
+  isDark: propIsDark
 }) => {
   const router = useRouter();
+  
+  // Получаем значения темы из контекста, если они не переданы через пропсы
+  const { theme, colors: themeColors } = useAppTheme();
+  const isDark = propIsDark !== undefined ? propIsDark : theme === 'dark';
+  const colors = propColors || themeColors;
   
   // Обработчик нажатия "See All"
   const handleSeeAll = () => {
@@ -28,9 +38,13 @@ const BrandSection: React.FC<BrandSectionProps> = ({
   return (
     <View style={styles.productSection}>
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>{brand.name}</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>
+          {brand.name}
+        </Text>
         <TouchableOpacity onPress={handleSeeAll}>
-          <Text style={styles.seeAllText}>See All</Text>
+          <Text style={[styles.seeAllText, { color: colors.placeholder }]}>
+            See All
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -50,14 +64,18 @@ const BrandSection: React.FC<BrandSectionProps> = ({
 
             return (
               <ProductCard
-               product={item}
-               />
-              );
-            }}
+                product={item}
+                isDark={isDark}
+                colors={colors}
+              />
+            );
+          }}
           contentContainerStyle={styles.productList}
         />
       ) : (
-        <Text style={styles.emptyBrandText}>No products available for this brand</Text>
+        <Text style={[styles.emptyBrandText, { color: colors.placeholder }]}>
+          No products available for this brand
+        </Text>
       )}
     </View>
   );
@@ -76,17 +94,14 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#000000',
   },
   seeAllText: {
     fontSize: 14,
-    color: '#666666',
   },
   productList: {
     paddingRight: 16,
   },
   emptyBrandText: {
-    color: '#666666',
     fontSize: 14,
     textAlign: 'center',
     marginVertical: 10,

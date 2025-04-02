@@ -1,31 +1,50 @@
 import React from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
 import { Category } from '@/utils/productHelpers';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface CategoryListProps {
   categories: Category[];
   selectedCategory: string;
   onSelectCategory: (categoryName: string) => void;
+  isDark?: boolean;
 }
 
 const CategoryList: React.FC<CategoryListProps> = ({
   categories,
   selectedCategory,
-  onSelectCategory
+  onSelectCategory,
+  isDark: propIsDark
 }) => {
+  // Получаем данные темы из контекста, если они не переданы через пропсы
+  const { theme, colors: themeColors } = useAppTheme();
+  const isDark = propIsDark !== undefined ? propIsDark : theme === 'dark';
+  
+  // Определяем цвета в зависимости от темы
+  const categoryColors = {
+    background: isDark ? '#2C2C2C' : '#F5F5F5',
+    text: isDark ? '#BBBBBB' : '#555555',
+    selectedBackground: isDark ? themeColors.tint : '#000000',
+    selectedText: '#FFFFFF',
+  };
+
   // Рендеринг элемента категории
   const renderCategoryItem = ({ item }: { item: Category }) => (
     <TouchableOpacity
       style={[
         styles.categoryItem,
-        selectedCategory === item.name && styles.selectedCategoryItem
+        { backgroundColor: categoryColors.background },
+        selectedCategory === item.name && 
+        { backgroundColor: categoryColors.selectedBackground }
       ]}
       onPress={() => onSelectCategory(item.name)}
     >
       <Text 
         style={[
           styles.categoryText,
-          selectedCategory === item.name && styles.selectedCategoryText
+          { color: categoryColors.text },
+          selectedCategory === item.name && 
+          { color: categoryColors.selectedText }
         ]}
       >
         {item.name}
@@ -59,18 +78,10 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     marginRight: 10,
-    backgroundColor: '#F5F5F5',
-  },
-  selectedCategoryItem: {
-    backgroundColor: '#000000',
   },
   categoryText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#555555',
-  },
-  selectedCategoryText: {
-    color: '#FFFFFF',
   },
 });
 

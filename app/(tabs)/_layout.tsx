@@ -3,18 +3,20 @@ import { Tabs } from 'expo-router';
 import { Image, StyleSheet, View, Text } from 'react-native';
 import { useCallback, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 // Создаем компонент бейджа для иконки корзины
 interface CartBadgeIconProps {
   count: number;
+  color: string;
 }
 
-const CartBadgeIcon = ({ count }: CartBadgeIconProps) => {
+const CartBadgeIcon = ({ count, color }: CartBadgeIconProps) => {
   if (count <= 0) {
     return (
       <Image
         source={require('../../assets/images/cart.png')}
-        style={styles.icon}
+        style={[styles.icon, { tintColor: color }]}
         resizeMode="contain"
       />
     );
@@ -24,7 +26,7 @@ const CartBadgeIcon = ({ count }: CartBadgeIconProps) => {
     <View style={styles.badgeIconContainer}>
       <Image
         source={require('../../assets/images/cart.png')}
-        style={styles.icon}
+        style={[styles.icon, { tintColor: color }]}
         resizeMode="contain"
       />
       <View style={styles.badge}>
@@ -37,6 +39,9 @@ const CartBadgeIcon = ({ count }: CartBadgeIconProps) => {
 };
 
 export default function TabLayout() {
+  // Используем наш новый хук темы
+  const { theme, colors } = useAppTheme();
+  
   // Состояние для хранения количества товаров в корзине
   const [cartItemCount, setCartItemCount] = useState(0);
 
@@ -71,18 +76,26 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarShowLabel: false, // Убираем текст с табов
-        tabBarStyle: styles.tabBar, // Стили для панели навигации
-        headerShown: false
+        tabBarStyle: [
+          styles.tabBar, 
+          { 
+            backgroundColor: colors.card,
+            borderTopColor: colors.border,
+          }
+        ], // Стили для панели навигации
+        headerShown: false,
+        tabBarActiveTintColor: colors.tint,
+        tabBarInactiveTintColor: colors.tabIconDefault,
       }}
     >
       <Tabs.Screen
         name="index" // Файл app/tabs/index.tsx отвечает за этот маршрут
         options={{
           headerShown: false, // Убираем верхний хедер
-          tabBarIcon: () => (
+          tabBarIcon: ({ color }) => (
             <Image
               source={require('../../assets/images/homeIcon.png')}
-              style={styles.icon}
+              style={[styles.icon, { tintColor: color }]}
               resizeMode="contain"
             />
           ),
@@ -92,10 +105,10 @@ export default function TabLayout() {
         name="catalog" // Файл app/tabs/catalog.tsx
         options={{
           title: 'Каталог',
-          tabBarIcon: () => (
+          tabBarIcon: ({ color }) => (
             <Image
               source={require('../../assets/images/catalog.png')}
-              style={styles.icon}
+              style={[styles.icon, { tintColor: color }]}
               resizeMode="contain"
             />
           ),
@@ -105,8 +118,8 @@ export default function TabLayout() {
         name="cart" // Файл app/tabs/cart.tsx
         options={{
           title: 'Корзина',
-          tabBarIcon: () => (
-            <CartBadgeIcon count={cartItemCount} />
+          tabBarIcon: ({ color }) => (
+            <CartBadgeIcon count={cartItemCount} color={color} />
           ),
         }}
       />
@@ -114,10 +127,10 @@ export default function TabLayout() {
         name="profile" // Файл app/tabs/profile.tsx
         options={{
           title: 'Профиль',
-          tabBarIcon: () => (
+          tabBarIcon: ({ color }) => (
             <Image
               source={require('../../assets/images/profile.png')}
-              style={styles.icon}
+              style={[styles.icon, { tintColor: color }]}
               resizeMode="contain"
             />
           ),
@@ -132,7 +145,7 @@ const styles = StyleSheet.create({
     height: 80, // Увеличиваем высоту панели
     paddingBottom: 20, // Добавляем отступ снизу для иконок
     paddingTop: 10, // Отступ сверху, чтобы иконки не были прижаты к верху
-    // backgroundColor: '#fff', // Цвет панели (по желанию)
+    borderTopWidth: 1,
   },
   icon: {
     width: 25, // Ширина иконки

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface SectionHeaderProps {
   title: string;
@@ -12,6 +13,8 @@ interface SectionHeaderProps {
     name: string;
     onPress: () => void;
   };
+  isDark?: boolean;
+  colors?: any;
 }
 
 const SectionHeader: React.FC<SectionHeaderProps> = ({
@@ -20,26 +23,39 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({
   onActionPress,
   showBackButton = false,
   onBackPress,
-  rightIcon
+  rightIcon,
+  isDark: propIsDark,
+  colors: propColors
 }) => {
+  // Получаем данные темы, если они не переданы через пропсы
+  const { theme, colors: themeColors } = useAppTheme();
+  const isDark = propIsDark !== undefined ? propIsDark : theme === 'dark';
+  const colors = propColors || themeColors;
+
   return (
-    <View style={styles.header}>
+    <View style={[
+      styles.header, 
+      { 
+        backgroundColor: colors.card,
+        borderBottomColor: colors.border
+      }
+    ]}>
       <View style={styles.leftContainer}>
         {showBackButton && (
           <TouchableOpacity 
             style={styles.backButton}
             onPress={onBackPress}
           >
-            <Ionicons name="arrow-back" size={24} color="#000000" />
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
         )}
-        <Text style={styles.headerTitle}>{title}</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{title}</Text>
       </View>
       
       <View style={styles.rightContainer}>
         {actionText && (
           <TouchableOpacity onPress={onActionPress}>
-            <Text style={styles.actionText}>{actionText}</Text>
+            <Text style={[styles.actionText, { color: colors.placeholder }]}>{actionText}</Text>
           </TouchableOpacity>
         )}
         
@@ -48,7 +64,7 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({
             style={styles.iconButton}
             onPress={rightIcon.onPress}
           >
-            <Ionicons name={rightIcon.name} size={24} color="#000000" />
+            <Ionicons name={rightIcon.name as any} size={24} color={colors.text} />
           </TouchableOpacity>
         )}
       </View>
@@ -64,7 +80,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#EEEEEE',
   },
   leftContainer: {
     flexDirection: 'row',
@@ -80,11 +95,9 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#000000',
   },
   actionText: {
     fontSize: 14,
-    color: '#666666',
   },
   iconButton: {
     marginLeft: 10,

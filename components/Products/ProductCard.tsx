@@ -6,22 +6,32 @@ import { Ionicons } from '@expo/vector-icons';
 // Импортируем контекст и утилиты
 import { useAppContext } from '@/context/AppContext';
 import { getPriorityGender, Product } from '@/utils/productHelpers';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface ProductCardProps {
   product: Product;
   onPress?: (slug: string) => void;
   size?: 'small' | 'medium' | 'large';
   showFavoriteButton?: boolean;
+  isDark?: boolean;
+  colors?: any;
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ 
   product, 
   onPress,
   size = 'medium',
-  showFavoriteButton = true
+  showFavoriteButton = true,
+  isDark: propIsDark,
+  colors: propColors
 }) => {
   const router = useRouter();
   const displayGender = getPriorityGender(product.genders);
+  
+  // Получаем тему и цвета, если они не были переданы через пропсы
+  const { theme, colors: themeColors } = useAppTheme();
+  const isDark = propIsDark !== undefined ? propIsDark : theme === 'dark';
+  const colors = propColors || themeColors;
   
   // Получаем функции для работы с избранным
   const { isInFavorites, addToFavorites, removeFromFavorites } = useAppContext();
@@ -116,11 +126,17 @@ const ProductCard: React.FC<ProductCardProps> = ({
       onPress={handlePress}
       activeOpacity={0.8}
     >
-      <View style={styles.productContainer}>
+      <View style={[
+        styles.productContainer,
+        { backgroundColor: isDark ? colors.cardBackground : "#f5f5f5" }
+      ]}>
         <View style={styles.imageContainer}>
           <View style={[
             styles.imageWrapper, 
-            { height: cardStyle.image.height }
+            { 
+              height: cardStyle.image.height,
+              backgroundColor: isDark ? colors.card : "#ffffff" 
+            }
           ]}>
             <Image 
               source={{ uri: product.imageUrl }} 
@@ -132,31 +148,48 @@ const ProductCard: React.FC<ProductCardProps> = ({
           
           {showFavoriteButton && hasColors && (
             <TouchableOpacity 
-              style={styles.favoriteButton}
+              style={[
+                styles.favoriteButton,
+                { backgroundColor: isDark ? 'rgba(40, 40, 40, 0.9)' : 'rgba(255, 255, 255, 0.9)' }
+              ]}
               onPress={handleFavoritePress}
             >
               <Ionicons 
                 name={isFavorite ? "heart" : "heart-outline"} 
                 size={18} 
-                color={isFavorite ? "#FF3B30" : "#000000"} 
+                color={isFavorite ? "#FF3B30" : (isDark ? "#FFFFFF" : "#000000")} 
               />
             </TouchableOpacity>
           )}
         </View>
         
         <View style={styles.productInfoContainer}>
-          <Text style={styles.productTitle} numberOfLines={1} ellipsizeMode="tail">
+          <Text 
+            style={[styles.productTitle, { color: colors.text }]} 
+            numberOfLines={1} 
+            ellipsizeMode="tail"
+          >
             {product.Name}
           </Text>
           <View style={styles.productMetaContainer}>
-            <Text style={styles.productBrand} numberOfLines={1} ellipsizeMode="tail">
+            <Text 
+              style={[styles.productBrand, { color: colors.placeholder }]} 
+              numberOfLines={1} 
+              ellipsizeMode="tail"
+            >
               {product.brandName}
             </Text>
-            <Text style={styles.productCategory} numberOfLines={1} ellipsizeMode="tail">
+            <Text 
+              style={[styles.productCategory, { color: colors.placeholder }]} 
+              numberOfLines={1} 
+              ellipsizeMode="tail"
+            >
               {displayGender}
             </Text>
           </View>
-          <Text style={styles.productPrice}>${product.Price.toFixed(2)}</Text>
+          <Text style={[styles.productPrice, { color: colors.text }]}>
+            ${product.Price.toFixed(2)}
+          </Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -169,7 +202,6 @@ const styles = StyleSheet.create({
   },
   productContainer: {
     borderRadius: 12,
-    backgroundColor: "#f5f5f5", // Более светлый фон
     padding: 6,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -187,7 +219,6 @@ const styles = StyleSheet.create({
     width: '100%',
     borderRadius: 8,
     overflow: 'hidden',
-    backgroundColor: '#ffffff',
   },
   productImage: {
     width: '100%',
@@ -198,7 +229,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     right: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     width: 30,
     height: 30,
     borderRadius: 15,
@@ -217,7 +247,6 @@ const styles = StyleSheet.create({
   productTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000000',
     marginBottom: 4,
   },
   productMetaContainer: {
@@ -228,19 +257,16 @@ const styles = StyleSheet.create({
   },
   productBrand: {
     fontSize: 13,
-    color: '#555555',
     flex: 1,
   },
   productCategory: {
     fontSize: 13,
-    color: '#555555',
     textAlign: 'right',
     flex: 1,
   },
   productPrice: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#000000',
   },
 });
 

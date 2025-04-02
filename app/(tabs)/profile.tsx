@@ -1,26 +1,66 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, SafeAreaView, ScrollView, StatusBar } from 'react-native';
 import { Feather, MaterialIcons } from '@expo/vector-icons';
+import { useTheme } from '@/context/ThemeContext';
+import ThemeSwitch from '@/components/ThemeSwitch';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import { useAppContext } from '@/context/AppContext';
 
 const ProfileScreen = () => {
+  const { currentTheme } = useTheme();
+  const isDark = currentTheme === 'dark';
   const router = useRouter();
-  const { favorites } = useAppContext();
   
-  // Количество избранных товаров
-  const favoritesCount = favorites ? favorites.length : 0;
+  // Состояние для избранных товаров
+  const [favorites, setFavorites] = useState([]);
+  const [loading, setLoading] = useState(true);
+  
+  // Цвета в зависимости от темы
+  const colors = {
+    background: isDark ? '#121212' : '#F2F2F7',
+    card: isDark ? '#1E1E1E' : '#FFFFFF',
+    text: isDark ? '#FFFFFF' : '#000000',
+    subtext: isDark ? '#BBBBBB' : '#8E8E93',
+    border: isDark ? '#2C2C2C' : '#E1E1E1',
+    icon: isDark ? '#FFFFFF' : '#4A4A4A',
+    iconButton: isDark ? '#333333' : '#F5F5F5',
+  };
+  
+  // Загрузка избранных товаров при монтировании компонента
+  useEffect(() => {
+    const loadFavorites = async () => {
+      try {
+        setLoading(true);
+        const storedFavorites = await AsyncStorage.getItem('favorites');
+        if (storedFavorites) {
+          setFavorites(JSON.parse(storedFavorites));
+        }
+      } catch (error) {
+        console.error('Ошибка загрузки избранного:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadFavorites();
+  }, []);
+  
+  // Переход к избранным товарам
+  const goToFavorites = () => {
+    // Здесь будет переход на страницу избранного
+    router.push('/favorites');
+  };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       <ScrollView>
         {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Профиль</Text>
+        <View style={[styles.header, { backgroundColor: colors.card }]}>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Profile</Text>
           <View style={styles.headerIcons}>
             <TouchableOpacity style={styles.iconButton}>
-              <Feather name="bell" size={22} color="#000" />
+              <Feather name="bell" size={22} color={colors.icon} />
               <View style={styles.notificationDot}>
                 <Text style={styles.notificationText}>2</Text>
               </View>
@@ -29,69 +69,82 @@ const ProfileScreen = () => {
         </View>
 
         {/* Profile Card */}
-        <View style={styles.profileCard}>
+        <View style={[styles.profileCard, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
           <Image
             source={{ uri: 'https://i.pinimg.com/236x/8f/76/61/8f766151ed3c5e57d297c783a4a4b7e7.jpg' }}
             style={styles.profileImage}
           />
-          <Text style={styles.profileName}>Adilet Ermekbaev</Text>
-          <TouchableOpacity style={styles.editButton}>
-            <Text style={styles.editButtonText}>Редактировать профиль</Text>
+          <Text style={[styles.profileName, { color: colors.text }]}>Adilet Ermekbaev</Text>
+          <TouchableOpacity style={[styles.editButton, { backgroundColor: colors.iconButton }]}>
+            <Text style={styles.editButtonText}>Edit Profile</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Menu Items */}
-        <View style={styles.menuContainer}>
-          {/* Добавляем пункт Избранное */}
+        {/* Favorites section */}
+        <View style={[styles.menuContainer, { backgroundColor: colors.card, marginTop: 20, marginBottom: 10 }]}>
           <TouchableOpacity 
-            style={styles.menuItem}
-            onPress={() => router.push("../favorites")}
+            style={[styles.menuItem, { borderBottomColor: colors.border }]}
+            onPress={goToFavorites}
           >
-            <View style={styles.menuIconContainer}>
-              <MaterialIcons name="favorite-outline" size={24} color="#4A4A4A" />
+            <View style={[styles.menuIconContainer, { backgroundColor: colors.iconButton }]}>
+              <MaterialIcons name="favorite" size={24} color="#FF6B6B" />
             </View>
             <View style={styles.menuTextContainer}>
-              <Text style={styles.menuTitle}>Избранное</Text>
-              <Text style={styles.menuSubtitle}>Сохраненные товары</Text>
+              <Text style={[styles.menuTitle, { color: colors.text }]}>Favorites</Text>
+              <Text style={[styles.menuSubtitle, { color: colors.subtext }]}>
+                {favorites.length} items saved
+              </Text>
             </View>
-            {favoritesCount > 0 && (
-              <View style={styles.badgeContainer}>
-                <Text style={styles.badgeText}>{favoritesCount}</Text>
-              </View>
-            )}
-            <MaterialIcons name="chevron-right" size={24} color="#BBBBBB" />
+            <MaterialIcons name="chevron-right" size={24} color={colors.subtext} />
           </TouchableOpacity>
-          
+        </View>
+
+        <View style={[styles.menuContainer, { backgroundColor: colors.card }]}>
           <MenuItem 
             icon="account-circle" 
-            title="Личная информация" 
-            subtitle="Просмотр личных данных" 
-            onPress={() => {}}
+            title="Personal Information" 
+            subtitle="View your personal info" 
+            colors={colors}
           />
           <MenuItem 
             icon="settings" 
-            title="Настройки" 
-            subtitle="Настройки приложения" 
-            onPress={() => {}}
+            title="Settings" 
+            subtitle="App settings and preferences" 
+            colors={colors}
           />
           <MenuItem 
             icon="help-outline" 
-            title="Помощь" 
-            subtitle="Поддержка и справка" 
-            onPress={() => {}}
+            title="Help & Support" 
+            subtitle="Get help or contact support" 
+            colors={colors}
           />
           <MenuItem 
             icon="info-outline" 
-            title="О приложении" 
-            subtitle="Условия и политика" 
-            onPress={() => {}}
+            title="About" 
+            subtitle="Terms, Privacy, and App info" 
+            colors={colors}
           />
+          
+          {/* Переключатель темы */}
+          <View style={[styles.menuItem, { borderBottomColor: colors.border }]}>
+            <View style={[styles.menuIconContainer, { backgroundColor: colors.iconButton }]}>
+              <MaterialIcons 
+                name={isDark ? "dark-mode" : "light-mode"} 
+                size={24} 
+                color={colors.icon} 
+              />
+            </View>
+            <View style={styles.themeContainer}>
+              <ThemeSwitch showLabel={false} />
+            </View>
+          </View>
+          
           <MenuItem 
             icon="exit-to-app" 
-            title="Выйти" 
+            title="Logout" 
             subtitle="" 
             isLast={true}
-            onPress={() => {}}
+            colors={colors}
           />
         </View>
       </ScrollView>
@@ -99,20 +152,23 @@ const ProfileScreen = () => {
   );
 };
 
-const MenuItem = ({ icon, title, subtitle, isLast = false, onPress } : any) => {
+const MenuItem = ({ icon, title, subtitle, isLast = false, colors } : any) => {
   return (
     <TouchableOpacity 
-      style={[styles.menuItem, isLast ? styles.lastMenuItem : null]}
-      onPress={onPress}
+      style={[
+        styles.menuItem, 
+        isLast ? styles.lastMenuItem : null,
+        { borderBottomColor: colors.border }
+      ]}
     >
-      <View style={styles.menuIconContainer}>
-        <MaterialIcons name={icon} size={24} color="#4A4A4A" />
+      <View style={[styles.menuIconContainer, { backgroundColor: colors.iconButton }]}>
+        <MaterialIcons name={icon} size={24} color={colors.icon} />
       </View>
       <View style={styles.menuTextContainer}>
-        <Text style={styles.menuTitle}>{title}</Text>
-        {subtitle ? <Text style={styles.menuSubtitle}>{subtitle}</Text> : null}
+        <Text style={[styles.menuTitle, { color: colors.text }]}>{title}</Text>
+        {subtitle ? <Text style={[styles.menuSubtitle, { color: colors.subtext }]}>{subtitle}</Text> : null}
       </View>
-      <MaterialIcons name="chevron-right" size={24} color="#BBBBBB" />
+      <MaterialIcons name="chevron-right" size={24} color={colors.subtext} />
     </TouchableOpacity>
   );
 };
@@ -120,7 +176,6 @@ const MenuItem = ({ icon, title, subtitle, isLast = false, onPress } : any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
   },
   header: {
     flexDirection: 'row',
@@ -128,12 +183,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 15,
-    backgroundColor: '#fff',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000',
   },
   headerIcons: {
     flexDirection: 'row',
@@ -159,11 +212,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   profileCard: {
-    backgroundColor: '#fff',
     alignItems: 'center',
     paddingVertical: 25,
     borderBottomWidth: 1,
-    borderBottomColor: '#E1E1E1',
   },
   profileImage: {
     width: 110,
@@ -174,13 +225,11 @@ const styles = StyleSheet.create({
   profileName: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#000',
     marginBottom: 15,
   },
   editButton: {
     paddingHorizontal: 20,
     paddingVertical: 8,
-    backgroundColor: '#F2F2F7',
     borderRadius: 20,
   },
   editButtonText: {
@@ -188,11 +237,8 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   menuContainer: {
-    marginTop: 20,
-    backgroundColor: '#fff',
     borderRadius: 10,
     marginHorizontal: 15,
-    marginBottom: 20,
     overflow: 'hidden',
   },
   menuItem: {
@@ -201,7 +247,6 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     paddingHorizontal: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#E1E1E1',
   },
   lastMenuItem: {
     borderBottomWidth: 0,
@@ -211,7 +256,6 @@ const styles = StyleSheet.create({
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
     borderRadius: 20,
     marginRight: 15,
   },
@@ -221,27 +265,14 @@ const styles = StyleSheet.create({
   menuTitle: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#000',
   },
   menuSubtitle: {
     fontSize: 12,
-    color: '#8E8E93',
     marginTop: 2,
   },
-  badgeContainer: {
-    backgroundColor: '#FF3B30',
-    minWidth: 24,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-    paddingHorizontal: 5,
-  },
-  badgeText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: 'bold',
+  themeContainer: {
+    flex: 1,
+    paddingLeft: 10,
   },
 });
 

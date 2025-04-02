@@ -26,6 +26,9 @@ import PromoSlider from '@/components/Promo/PromoSlider';
 import CategoryList from '@/components/Categories/CategoryList';
 import BrandSection from '@/components/Brands/BrandSection';
 
+// Импорт хука темы
+import { useAppTheme } from '@/hooks/useAppTheme';
+
 // Данные для промо-слайдера (можно будет переместить в API в будущем)
 const promoData = [
   {
@@ -53,6 +56,9 @@ const promoData = [
 
 export default function HomeScreen() {
   const router = useRouter();
+  // Получаем текущую тему
+  const { theme, colors } = useAppTheme();
+  const isDark = theme === 'dark';
 
   // Состояния данных
   const [products, setProducts] = useState<any[]>([]);
@@ -253,19 +259,19 @@ export default function HomeScreen() {
       onRequestClose={handleCloseFilters}
     >
       <View style={styles.modalContainer}>
-        <View style={styles.modalContent}>
+        <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Фильтры</Text>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Фильтры</Text>
             <TouchableOpacity onPress={handleCloseFilters}>
-              <Ionicons name="close" size={24} color="#000000" />
+              <Ionicons name="close" size={24} color={colors.text} />
             </TouchableOpacity>
           </View>
           
-          <Text style={styles.modalSectionTitle}>В будущем здесь будут фильтры</Text>
+          <Text style={[styles.modalSectionTitle, { color: colors.text }]}>В будущем здесь будут фильтры</Text>
           
-          <View style={styles.modalFooter}>
+          <View style={[styles.modalFooter, { borderTopColor: colors.border }]}>
             <TouchableOpacity 
-              style={styles.resetButton}
+              style={[styles.resetButton, { borderColor: colors.text }]}
               onPress={() => setSearchFilters({
                 brands: [],
                 categories: [],
@@ -275,11 +281,11 @@ export default function HomeScreen() {
                 colors: []
               })}
             >
-              <Text style={styles.resetButtonText}>Сбросить</Text>
+              <Text style={[styles.resetButtonText, { color: colors.text }]}>Сбросить</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
-              style={styles.applyButton}
+              style={[styles.applyButton, { backgroundColor: colors.tint }]}
               onPress={() => applyFilters(searchFilters)}
             >
               <Text style={styles.applyButtonText}>Применить</Text>
@@ -291,65 +297,79 @@ export default function HomeScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-      
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={colors.background} />
+
       {/* Верхняя панель с локацией */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.card }]}>
         <TouchableOpacity style={styles.locationContainer}>
-          <Ionicons name="location-outline" size={16} color="#000000" />
-          <Text style={styles.locationText}>Bishkek, KGZ</Text>
-          <Ionicons name="chevron-down" size={16} color="#000000" />
+          <Ionicons name="location-outline" size={16} color={colors.text} />
+          <Text style={[styles.locationText, { color: colors.text }]}>Bishkek, KGZ</Text>
+          <Ionicons name="chevron-down" size={16} color={colors.text} />
         </TouchableOpacity>
         
         <TouchableOpacity>
-          <Ionicons name="notifications-outline" size={22} color="#000000" />
+          <Ionicons name="notifications-outline" size={22} color={colors.text} />
         </TouchableOpacity>
       </View>
 
-        {/* Компонент поиска */}
-        <View style={styles.searchBarContainer}>
+      {/* Компонент поиска */}
+      <View style={styles.searchBarContainer}>
         <SearchComponent
           onSearch={handleSearch}
           onFilter={handleOpenFilters}
           placeholder="Поиск товаров"
           loading={searchLoading}
           searchResults={searchResults}
+          theme={theme}
           renderResultItem={(data) => {
             const item = data.item || data;
-            console.log(item.imageUrl);
             
             return (
-              
               <TouchableOpacity 
-                style={styles.searchResultItem}
+                style={[
+                  styles.searchResultItem, 
+                  { 
+                    borderBottomColor: colors.border,
+                    backgroundColor: colors.card
+                  }
+                ]}
                 onPress={() => handleProductPress(item.slug)}
               >
                 {item.imageUrl && (
                   <Image 
                     source={{ uri: item.imageUrl }} 
-                    style={styles.searchResultImage}
+                    style={[
+                      styles.searchResultImage,
+                      { backgroundColor: isDark ? colors.cardBackground : '#F5F5F5' }
+                    ]}
                     defaultSource={require('../../assets/images/bell_icon.png')}
                     resizeMode="cover"
                   />
                 )}
                 <View style={styles.searchResultInfo}>
-                  <Text style={styles.searchResultTitle}>{item.Name || 'Без названия'}</Text>
+                  <Text style={[styles.searchResultTitle, { color: colors.text }]}>
+                    {item.Name || 'Без названия'}
+                  </Text>
                   <View style={styles.searchResultMeta}>
-                    <Text style={styles.searchResultBrand}>{item.brandName}</Text>
-                    <Text style={styles.searchResultPrice}>${item.Price?.toFixed(2)}</Text>
+                    <Text style={[styles.searchResultBrand, { color: colors.placeholder }]}>
+                      {item.brandName}
+                    </Text>
+                    <Text style={[styles.searchResultPrice, { color: colors.text }]}>
+                      ${item.Price?.toFixed(2)}
+                    </Text>
                   </View>
                 </View>
               </TouchableOpacity>
             );
           }}
         />
-        </View>
-      <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-        >
+      </View>
 
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         {/* Промо-слайдер */}
         <PromoSlider items={promoData} />
 
@@ -358,24 +378,34 @@ export default function HomeScreen() {
           categories={categories}
           selectedCategory={selectedCategory}
           onSelectCategory={handleCategorySelect}
+          isDark={isDark}
         />
 
         {/* Секции брендов */}
         {loading ? (
-          <ActivityIndicator size="large" color="#000000" style={styles.loader} />
+          <ActivityIndicator size="large" color={colors.tint} style={styles.loader} />
         ) : error ? (
-          <Text style={styles.errorText}>{error}</Text>
+          <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
         ) : (
           getFilteredBrandProducts().length > 0 
             ? getFilteredBrandProducts().map(brand => (
-                <BrandSection key={brand.slug} brand={brand} />
+                <BrandSection 
+                  key={brand.slug} 
+                  brand={brand} 
+                  colors={colors}
+                  isDark={isDark}
+                />
               ))
-            : <Text style={styles.emptyBrandText}>Нет товаров в категории {selectedCategory}</Text>
+            : <Text style={[styles.emptyBrandText, { color: colors.placeholder }]}>
+                Нет товаров в категории {selectedCategory}
+              </Text>
         )}
         
         {/* Показываем сообщение, если нет брендов для отображения */}
         {!loading && !error && brandProducts.length === 0 && (
-          <Text style={styles.emptyBrandText}>No brands available</Text>
+          <Text style={[styles.emptyBrandText, { color: colors.placeholder }]}>
+            No brands available
+          </Text>
         )}
       </ScrollView>
       
@@ -388,7 +418,6 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
   scrollContent: {
     paddingHorizontal: 16,
@@ -409,12 +438,11 @@ const styles = StyleSheet.create({
   locationText: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#000000',
     marginHorizontal: 5,
   },
   searchBarContainer: {
     marginVertical: 16,
-    padding:16,
+    padding: 16,
     width: '100%',
     zIndex: 1000
   },
@@ -422,7 +450,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#EEEEEE',
     alignItems: 'center',
   },
   searchResultImage: {
@@ -430,7 +457,6 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 8,
     marginRight: 12,
-    backgroundColor: '#F5F5F5',
   },
   searchResultInfo: {
     flex: 1,
@@ -438,7 +464,6 @@ const styles = StyleSheet.create({
   searchResultTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#000000',
     marginBottom: 4,
   },
   searchResultMeta: {
@@ -447,24 +472,20 @@ const styles = StyleSheet.create({
   },
   searchResultBrand: {
     fontSize: 12,
-    color: '#666666',
   },
   searchResultPrice: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#000000',
   },
   loader: {
     marginVertical: 20,
   },
   errorText: {
-    color: '#FF6B6B',
     fontSize: 14,
     textAlign: 'center',
     marginVertical: 10,
   },
   emptyBrandText: {
-    color: '#666666',
     fontSize: 14,
     textAlign: 'center',
     marginVertical: 10,
@@ -475,7 +496,6 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 16,
@@ -490,12 +510,10 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#000000',
   },
   modalSectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000000',
     marginVertical: 10,
   },
   modalFooter: {
@@ -504,17 +522,14 @@ const styles = StyleSheet.create({
     marginTop: 20,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#EEEEEE',
   },
   resetButton: {
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#000000',
   },
   resetButtonText: {
-    color: '#000000',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -522,7 +537,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 8,
-    backgroundColor: '#000000',
   },
   applyButtonText: {
     color: '#FFFFFF',

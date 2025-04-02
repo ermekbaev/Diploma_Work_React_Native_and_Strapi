@@ -15,12 +15,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Импортируем компоненты и хуки
 import { useAppContext } from '@/context/AppContext';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import FavoriteItem from '@/components/Favorites/FavoriteItem';
 
 export default function FavoritesScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const { favorites, favoritesLoading, removeFromFavorites } = useAppContext();
+  const { theme, colors } = useAppTheme();
+  const isDark = theme === 'dark';
   
   const [localFavorites, setLocalFavorites] = useState(favorites);
   const [isClearing, setIsClearing] = useState(false);
@@ -99,17 +102,17 @@ export default function FavoritesScreen() {
   // Отображение загрузки или процесса очистки
   if (favoritesLoading || isClearing) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.header, { borderBottomColor: colors.border, backgroundColor: colors.card }]}>
           <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={24} color="#000000" />
+            <Ionicons name="chevron-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Избранное</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Избранное</Text>
           <View style={{ width: 24 }} />
         </View>
         <View style={styles.loaderContainer}>
-          <ActivityIndicator size="large" color="#000000" />
-          <Text style={styles.loaderText}>
+          <ActivityIndicator size="large" color={colors.tint} />
+          <Text style={[styles.loaderText, { color: colors.text }]}>
             {isClearing ? 'Очистка избранного...' : 'Загрузка...'}
           </Text>
         </View>
@@ -120,18 +123,21 @@ export default function FavoritesScreen() {
   // Если нет избранных товаров
   if (!localFavorites || localFavorites.length === 0) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.header, { borderBottomColor: colors.border, backgroundColor: colors.card }]}>
           <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={24} color="#000000" />
+            <Ionicons name="chevron-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Избранное</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Избранное</Text>
           <View style={{ width: 24 }} />
         </View>
         <View style={styles.emptyContainer}>
-          <Ionicons name="heart-outline" size={64} color="#CCCCCC" />
-          <Text style={styles.emptyText}>В избранном пока ничего нет</Text>
-          <TouchableOpacity style={styles.shopButton} onPress={() => router.push('../(tabs)')}>
+          <Ionicons name="heart-outline" size={64} color={colors.placeholder} />
+          <Text style={[styles.emptyText, { color: colors.placeholder }]}>В избранном пока ничего нет</Text>
+          <TouchableOpacity 
+            style={[styles.shopButton, { backgroundColor: colors.tint }]} 
+            onPress={() => router.push('../(tabs)')}
+          >
             <Text style={styles.shopButtonText}>Перейти к покупкам</Text>
           </TouchableOpacity>
         </View>
@@ -140,13 +146,13 @@ export default function FavoritesScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Заголовок */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: colors.border, backgroundColor: colors.card }]}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={24} color="#000000" />
+          <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Избранное</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Избранное</Text>
         <TouchableOpacity 
           onPress={handleForceCleanup}
           style={styles.clearButton}
@@ -162,8 +168,11 @@ export default function FavoritesScreen() {
         renderItem={({ item }) => (
           <FavoriteItem
             item={item}
+            //@ts-ignore
             onPress={handleItemPress}
             onRemove={handleRemove}
+            isDark={isDark}
+            colors={colors}
           />
         )}
         contentContainerStyle={styles.listContent}
@@ -173,7 +182,7 @@ export default function FavoritesScreen() {
             refreshing={refreshing}
             onRefresh={onRefresh}
             colors={["#FF3B30"]}
-            tintColor="#FF3B30"
+            tintColor={colors.tint}
           />
         }
       />
@@ -184,7 +193,6 @@ export default function FavoritesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
   header: {
     flexDirection: 'row',
@@ -193,12 +201,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000000',
   },
   clearButton: {
     backgroundColor: '#FF3B30',
@@ -224,11 +230,9 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 24,
     fontSize: 16,
-    color: '#666666',
     textAlign: 'center',
   },
   shopButton: {
-    backgroundColor: '#000000',
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,
@@ -246,6 +250,5 @@ const styles = StyleSheet.create({
   loaderText: {
     marginTop: 10,
     fontSize: 16,
-    color: '#000000',
   },
 });

@@ -3,15 +3,30 @@ import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAppContext } from '@/context/AppContext';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface FavoriteItemProps {
   item: any;
   onRemove?: (id: string) => void;
+  onPress?: (slug: string) => void;
+  isDark?: boolean;
+  colors?: any;
 }
 
-const FavoriteItem: React.FC<FavoriteItemProps> = ({ item, onRemove }) => {
+const FavoriteItem: React.FC<FavoriteItemProps> = ({
+  item,
+  onRemove,
+  onPress,
+  isDark,
+  colors: propColors,
+}) => {
   const router = useRouter();
   const { removeFromFavorites } = useAppContext();
+  
+  // Используем useAppTheme, если цвета не переданы через пропсы
+  const { theme, colors: themeColors } = useAppTheme();
+  const localIsDark = isDark !== undefined ? isDark : theme === 'dark';
+  const colors = propColors || themeColors;
   
   // Проверяем, что item и product существуют
   if (!item || !item.product) {
@@ -25,7 +40,11 @@ const FavoriteItem: React.FC<FavoriteItemProps> = ({ item, onRemove }) => {
   
   // Обработчик нажатия на товар
   const handlePress = () => {
-    router.push(`../promo/${product.slug}`);
+    if (onPress) {
+      onPress(product.slug);
+    } else {
+      router.push(`../promo/${product.slug}`);
+    }
   };
   
   // Обработчик удаления из избранного
@@ -38,10 +57,21 @@ const FavoriteItem: React.FC<FavoriteItemProps> = ({ item, onRemove }) => {
   };
   
   return (
-    <TouchableOpacity style={styles.container} onPress={handlePress}>
-      <View style={styles.imageContainer}>
-        <Image 
-          source={{ uri: product.imageUrl }} 
+    <TouchableOpacity 
+      style={[
+        styles.container, 
+        { 
+          backgroundColor: localIsDark ? colors.card : '#f8f8f8' 
+        }
+      ]} 
+      onPress={handlePress}
+    >
+      <View style={[
+        styles.imageContainer,
+        { backgroundColor: localIsDark ? colors.cardBackground : '#ffffff' }
+      ]}>
+        <Image
+          source={{ uri: product.imageUrl }}
           style={styles.image}
           defaultSource={require('../../assets/images/bell_icon.png')}
           resizeMode="cover"
@@ -49,18 +79,47 @@ const FavoriteItem: React.FC<FavoriteItemProps> = ({ item, onRemove }) => {
       </View>
       
       <View style={styles.infoContainer}>
-        <Text style={styles.productName} numberOfLines={2}>{product.Name}</Text>
+        <Text 
+          style={[
+            styles.productName, 
+            { color: colors.text }
+          ]} 
+          numberOfLines={2}
+        >
+          {product.Name}
+        </Text>
         
         <View style={styles.detailsRow}>
-          <Text style={styles.brandName}>{product.brandName || 'Бренд'}</Text>
+          <Text 
+            style={[
+              styles.brandName,
+              { color: colors.placeholder }
+            ]}
+          >
+            {product.brandName || 'Бренд'}
+          </Text>
           
           {color && color.name && (
-            <Text style={styles.colorName}>Цвет: {color.name}</Text>
+            <Text 
+              style={[
+                styles.colorName,
+                { color: colors.placeholder }
+              ]}
+            >
+              Цвет: {color.name}
+            </Text>
           )}
         </View>
         
         <View style={styles.priceRow}>
-          <Text style={styles.price}>${typeof price === 'number' ? price.toFixed(2) : '0.00'}</Text>
+          <Text 
+            style={[
+              styles.price,
+              { color: colors.text }
+            ]}
+          >
+            ${typeof price === 'number' ? price.toFixed(2) : '0.00'}
+          </Text>
           
           <TouchableOpacity style={styles.removeButton} onPress={handleRemove}>
             <Ionicons name="trash-outline" size={20} color="#FF3B30" />
@@ -74,7 +133,6 @@ const FavoriteItem: React.FC<FavoriteItemProps> = ({ item, onRemove }) => {
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: '#f8f8f8',
     borderRadius: 12,
     marginBottom: 15,
     overflow: 'hidden',
@@ -85,7 +143,6 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 8,
     overflow: 'hidden',
-    backgroundColor: '#ffffff',
   },
   image: {
     width: '100%',
@@ -99,7 +156,6 @@ const styles = StyleSheet.create({
   productName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000000',
     marginBottom: 5,
   },
   detailsRow: {
@@ -109,11 +165,9 @@ const styles = StyleSheet.create({
   },
   brandName: {
     fontSize: 14,
-    color: '#666666',
   },
   colorName: {
     fontSize: 14,
-    color: '#666666',
   },
   priceRow: {
     flexDirection: 'row',
@@ -123,7 +177,6 @@ const styles = StyleSheet.create({
   price: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#000000',
   },
   removeButton: {
     padding: 5,

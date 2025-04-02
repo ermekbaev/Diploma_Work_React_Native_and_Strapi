@@ -9,6 +9,7 @@ import {
   ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface SearchProps {
   onSearch: (query: string) => void;
@@ -17,6 +18,7 @@ interface SearchProps {
   loading?: boolean;
   searchResults?: any[];
   renderResultItem?: (item: any) => React.ReactElement;
+  theme?: 'light' | 'dark';
 }
 
 const SearchComponent: React.FC<SearchProps> = ({
@@ -25,11 +27,16 @@ const SearchComponent: React.FC<SearchProps> = ({
   placeholder = "Поиск товаров",
   loading = false,
   searchResults = [],
-  renderResultItem
+  renderResultItem,
+  theme: propTheme
 }) => {
   const [query, setQuery] = useState('');
   const [showResults, setShowResults] = useState(false);
-    
+  
+  // Получаем данные темы
+  const { theme: appTheme, colors } = useAppTheme();
+  const isDark = propTheme ? propTheme === 'dark' : appTheme === 'dark';
+  
   const handleSearch = (text: string) => {
     setQuery(text);
     if (text.length > 2) {
@@ -48,30 +55,59 @@ const SearchComponent: React.FC<SearchProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.searchContainer}>
-        <View style={styles.searchInputContainer}>
-          <Ionicons name="search-outline" size={20} color="#A39FAF" style={styles.searchIcon} />
+        <View style={[
+          styles.searchInputContainer, 
+          { backgroundColor: isDark ? colors.cardBackground : '#F5F5F5' }
+        ]}>
+          <Ionicons 
+            name="search-outline" 
+            size={20} 
+            color={isDark ? colors.placeholder : "#A39FAF"} 
+            style={styles.searchIcon} 
+          />
           <TextInput
             placeholder={placeholder}
-            placeholderTextColor="#A39FAF"
-            style={styles.searchInput}
+            placeholderTextColor={isDark ? colors.placeholder : "#A39FAF"}
+            style={[
+              styles.searchInput, 
+              { color: colors.text }
+            ]}
             value={query}
             onChangeText={handleSearch}
           />
           {query.length > 0 && (
             <TouchableOpacity onPress={handleClear}>
-              <Ionicons name="close-circle" size={20} color="#A39FAF" />
+              <Ionicons 
+                name="close-circle" 
+                size={20} 
+                color={isDark ? colors.placeholder : "#A39FAF"} 
+              />
             </TouchableOpacity>
           )}
         </View>
-        <TouchableOpacity style={styles.filterButton} onPress={onFilter}>
+        <TouchableOpacity 
+          style={[
+            styles.filterButton, 
+            { backgroundColor: isDark ? colors.tint : '#000000' }
+          ]} 
+          onPress={onFilter}
+        >
           <Ionicons name="options-outline" size={20} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
       
-      {loading && <ActivityIndicator style={styles.loader} color="#000000" />}
+      {loading && (
+        <ActivityIndicator 
+          style={styles.loader} 
+          color={isDark ? colors.tint : "#000000"} 
+        />
+      )}
       
       {showResults && searchResults.length > 0 && renderResultItem && (
-        <View style={styles.resultsContainer}>
+        <View style={[
+          styles.resultsContainer,
+          { backgroundColor: colors.card }
+        ]}>
           <FlatList
             data={searchResults}
             keyExtractor={(item, index) => `search-result-${index}`}
@@ -83,8 +119,16 @@ const SearchComponent: React.FC<SearchProps> = ({
       )}
       
       {showResults && searchResults.length === 0 && !loading && (
-        <View style={styles.noResultsContainer}>
-          <Text style={styles.noResultsText}>Ничего не найдено</Text>
+        <View style={[
+          styles.noResultsContainer,
+          { backgroundColor: colors.card }
+        ]}>
+          <Text style={[
+            styles.noResultsText,
+            { color: colors.placeholder }
+          ]}>
+            Ничего не найдено
+          </Text>
         </View>
       )}
     </View>
@@ -105,7 +149,6 @@ const styles = StyleSheet.create({
   searchInputContainer: {
     flex: 1,
     height: 45,
-    backgroundColor: '#F5F5F5',
     borderRadius: 12,
     paddingHorizontal: 12,
     flexDirection: 'row',
@@ -118,32 +161,29 @@ const styles = StyleSheet.create({
     flex: 1,
     height: '100%',
     fontSize: 14,
-    color: '#000000',
   },
   filterButton: {
     width: 45,
     height: 45,
-    backgroundColor: '#000000',
     borderRadius: 12,
     marginLeft: 10,
     justifyContent: 'center',
     alignItems: 'center',
   },
- resultsContainer: {
-  position: 'absolute',
-  top: 53,
-  left: 0,
-  right: 0,
-  backgroundColor: '#FFFFFF',
-  borderRadius: 12,
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.1,
-  shadowRadius: 4,
-  elevation: 5, 
-  maxHeight: 300,
-  zIndex: 9999, 
-},
+  resultsContainer: {
+    position: 'absolute',
+    top: 53,
+    left: 0,
+    right: 0,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5, 
+    maxHeight: 300,
+    zIndex: 9999, 
+  },
   resultsList: {
     padding: 10,
   },
@@ -154,7 +194,6 @@ const styles = StyleSheet.create({
     right: 0,
     padding: 15,
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -165,7 +204,6 @@ const styles = StyleSheet.create({
   },
   noResultsText: {
     fontSize: 14,
-    color: '#666666',
   },
   loader: {
     marginVertical: 10,
