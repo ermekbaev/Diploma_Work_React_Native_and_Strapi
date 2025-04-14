@@ -19,17 +19,14 @@ const CartSummary: React.FC<CartSummaryProps> = ({
   isDark: propIsDark,
   colors: propColors
 }) => {
-  // Получаем данные темы из контекста, если они не переданы через пропсы
   const { theme, colors: themeColors } = useAppTheme();
   const isDark = propIsDark !== undefined ? propIsDark : theme === 'dark';
   const colors = propColors || themeColors;
 
-  // Функция для форматирования цены
   const formatPrice = (price: number): string => {
     return price.toFixed(2) + ' ₽';
   };
 
-  // Вспомогательная функция для получения правильной формы слова в зависимости от числа
   const getPluralForm = (count: number, forms: [string, string, string]): string => {
     const cases = [2, 0, 1, 1, 1, 2];
     const index = (count % 100 > 4 && count % 100 < 20) ? 2 : cases[Math.min(count % 10, 5)];
@@ -44,7 +41,6 @@ const CartSummary: React.FC<CartSummaryProps> = ({
         borderColor: colors.border
       }
     ]}>
-      {/* Информация о количестве товаров */}
       <View style={styles.summaryRow}>
         <Text style={[styles.summaryLabel, { color: colors.placeholder }]}>
           {itemCount} {getPluralForm(itemCount, ['товар', 'товара', 'товаров'])}
@@ -54,7 +50,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({
         </Text>
       </View>
       
-      {/* Информация о доставке */}
+      
       <View style={styles.summaryRow}>
         <View style={styles.shippingLabelContainer}>
           <Text style={[styles.summaryLabel, { color: colors.placeholder }]}>Доставка</Text>
