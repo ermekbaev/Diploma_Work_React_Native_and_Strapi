@@ -2,7 +2,6 @@ import { Stack } from "expo-router";
 import { useAppTheme } from "@/hooks/useAppTheme";
 
 export default function StackLayout() {
-  // Получаем данные темы
   const { theme, colors } = useAppTheme();
   const isDark = theme === 'dark';
 

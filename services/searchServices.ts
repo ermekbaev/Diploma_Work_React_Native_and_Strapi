@@ -32,9 +32,6 @@ let productsCache: Product[] = [];
 let lastCacheUpdate: number = 0;
 const CACHE_EXPIRY = 5 * 60 * 1000; // 5 минут в миллисекундах
 
-/**
- * Поиск товаров с поддержкой фильтров
- */
 export const searchProducts = async (query: string, filters?: any) => {
   try {
     // Получаем все товары
@@ -73,11 +70,6 @@ export const searchProducts = async (query: string, filters?: any) => {
         if (product.brandName.toLowerCase().includes(term)) {
           score += 5;
         }
-        
-        // // Проверяем описание (низкий приоритет)
-        // if (product.Description && product.Description.toLowerCase().includes(term)) {
-        //   score += 2;
-        // }
       }
       
       return score;
@@ -106,9 +98,6 @@ export const searchProducts = async (query: string, filters?: any) => {
   }
 };
 
-/**
- * Получение всех доступных фильтров
- */
 export const getAvailableFilters = async () => {
   try {
     // Если кэш пуст, заполняем его

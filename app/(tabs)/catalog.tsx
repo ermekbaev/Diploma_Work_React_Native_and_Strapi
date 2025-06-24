@@ -476,7 +476,7 @@ export default function CatalogScreen() {
           keyExtractor={(item) => item.slug}
           renderItem={renderProductItem}
           numColumns={selectedView === 'grid' ? 2 : 1}
-          key={selectedView} // Для корректного переключения между видами
+          key={selectedView} 
           contentContainerStyle={[
             styles.productList,
             selectedView === 'list' && styles.productListAsList

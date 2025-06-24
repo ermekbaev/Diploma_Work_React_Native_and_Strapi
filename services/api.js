@@ -1,7 +1,7 @@
 import axios from "axios";
 
-const API_URL = "http://192.168.0.104:1337/api";
-export const IMG_API = "http://192.168.0.104:1337";
+const API_URL = "http://192.168.0.105:1337/api";
+export const IMG_API = "http://192.168.0.105:1337";
 
 export const fetchProducts = async () => {
   try {

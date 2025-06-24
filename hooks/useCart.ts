@@ -85,7 +85,7 @@ const useCart = () => {
       setError('Не удалось загрузить корзину');
     } finally {
       setLoading(false);
-      setIsLoading(false);
+      setIsLoading(falFse);
     }
   }, [isLoading]);
 
