@@ -34,7 +34,25 @@ export default function StackLayout() {
           gestureEnabled: true,
           animation: "slide_from_right",
         }}
-      />
+       />
+
+         <Stack.Screen
+          name="my-orders"
+          options={{
+          presentation: "card",
+          gestureEnabled: true,
+          animation: "slide_from_right",
+        }}
+        />
+
+        <Stack.Screen
+          name="order-success"
+          options={{
+            presentation: "card",
+            gestureEnabled: false, // Запрещаем жест назад
+            animation: "slide_from_right",
+          }}
+        />
     </Stack>
   );
 }

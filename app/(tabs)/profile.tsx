@@ -100,6 +100,7 @@ const ProfileScreen = () => {
         </View>
 
         <View style={[styles.menuContainer, { backgroundColor: colors.card }]}>
+
           <MenuItem 
             icon="account-circle" 
             title="Personal Information" 
@@ -146,6 +147,24 @@ const ProfileScreen = () => {
             isLast={true}
             colors={colors}
           />
+        </View>
+
+        <View style={[styles.menuContainer, { backgroundColor: colors.card, marginBottom: 10 }]}>
+          <TouchableOpacity 
+            style={[styles.menuItem, { borderBottomColor: colors.border }]}
+            onPress={() => router.push('/(stack)/my-orders')}
+          >
+            <View style={[styles.menuIconContainer, { backgroundColor: colors.iconButton }]}>
+              <MaterialIcons name="receipt-long" size={24} color="#4CAF50" />
+            </View>
+            <View style={styles.menuTextContainer}>
+              <Text style={[styles.menuTitle, { color: colors.text }]}>Мои заказы</Text>
+              <Text style={[styles.menuSubtitle, { color: colors.subtext }]}>
+                История покупок и отслеживание
+              </Text>
+            </View>
+            <MaterialIcons name="chevron-right" size={24} color={colors.subtext} />
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>

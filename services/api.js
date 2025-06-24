@@ -1,7 +1,7 @@
 import axios from "axios";
 
-const API_URL = "http://192.168.0.105:1337/api";
-export const IMG_API = "http://192.168.0.105:1337";
+const API_URL = "https://exuberant-festival-9414e0f705.strapiapp.com/api";
+export const IMG_API = "https://exuberant-festival-9414e0f705.strapiapp.com";
 
 export const fetchProducts = async () => {
   try {
